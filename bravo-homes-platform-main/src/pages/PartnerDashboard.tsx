@@ -1197,6 +1197,8 @@ export default function PartnerDashboard() {
                       !((m.sender_id === user?.id && m.receiver_id === deleteConfirmClient.id) ||
                         (m.sender_id === deleteConfirmClient.id && m.receiver_id === user?.id))
                     ));
+                    // Remove client from sidebar list
+                    setClients(prev => prev.filter(c => c.id !== deleteConfirmClient.id));
                     // If this was the selected chat, deselect
                     if (selectedChatClient?.id === deleteConfirmClient.id) {
                       setSelectedChatClient(null);
