@@ -754,6 +754,11 @@ export default function AdminDashboard() {
       setIsNewLeadOpen(false);
       setNewLeadForm({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm', estimated_value: '', partner_id: '' });
       showToast('Lead criado com sucesso!');
+      // Direct browser notification
+      const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"new_lead":true}');
+      if (prefs.new_lead) {
+        sendBrowserNotif('🔔 Novo Lead na Bravo!', `${newLead.name} — ${newLead.service_type || ''} — ${newLead.city || ''} — $${newLead.estimated_value || '?'}`, 'new-lead-' + newLead.id);
+      }
     } else {
       console.error('Error inserting lead:', error);
       showToast(`Erro ao criar Lead: ${error?.message || 'Erro desconhecido'}`);
