@@ -1,0 +1,120 @@
+/* =============================================
+   Utility CSS Classes — Bravo Homes Platform
+   Replaces repetitive inline styles across dashboards
+   ============================================= */
+
+/* --- Layout Utilities --- */
+.u-flex { display: flex; }
+.u-flex-col { display: flex; flex-direction: column; }
+.u-flex-center { display: flex; align-items: center; }
+.u-flex-between { display: flex; justify-content: space-between; align-items: center; }
+.u-flex-end { display: flex; justify-content: flex-end; }
+.u-flex-gap-8 { display: flex; gap: 8px; }
+.u-flex-gap-10 { display: flex; gap: 10px; }
+.u-flex-gap-15 { display: flex; gap: 15px; }
+.u-flex-1 { flex: 1; }
+.u-flex-1-min { flex: 1; min-width: 0; }
+.u-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.u-w-full { width: 100%; }
+.u-w-half { width: 50%; }
+.u-text-center { text-align: center; }
+.u-cursor-pointer { cursor: pointer; }
+.u-hide { display: none; }
+.u-overflow-auto { overflow: auto; }
+
+/* --- Spacing Utilities --- */
+.u-mb-4 { margin-bottom: 4px; }
+.u-mb-6 { margin-bottom: 6px; }
+.u-mb-8 { margin-bottom: 8px; }
+.u-mb-10 { margin-bottom: 10px; }
+.u-mb-12 { margin-bottom: 12px; }
+.u-mb-14 { margin-bottom: 14px; }
+.u-mb-15 { margin-bottom: 15px; }
+.u-mb-16 { margin-bottom: 16px; }
+.u-mb-20 { margin-bottom: 20px; }
+.u-mb-24 { margin-bottom: 24px; }
+.u-mt-3 { margin-top: 3px; }
+.u-mt-10 { margin-top: 10px; }
+.u-mt-20 { margin-top: 20px; }
+.u-mt-24 { margin-top: 24px; }
+.u-p-0 { padding: 0; }
+.u-p-20 { padding: 20px; }
+
+/* --- Typography --- */
+.u-syne-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.u-mono-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+.u-mono-label-sm {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 4px;
+}
+.u-mono-label-xs {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--t3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.u-mono-tiny {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--t2);
+}
+.u-text-gold { color: var(--gold); }
+.u-text-muted { color: var(--t2); }
+.u-text-subtle { color: var(--t3); }
+.u-text-sm { font-size: 0.75rem; }
+.u-text-xs { font-size: 0.7rem; }
+
+/* --- Section Utilities --- */
+.u-section-header {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.u-empty-state {
+  text-align: center;
+  padding: 20px;
+  color: var(--t2);
+}
+.u-emoji-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+/* --- Modal Utilities --- */
+.u-modal-sm { max-width: 420px; }
+.u-modal-md { max-width: 450px; }
+.u-modal-lg { max-width: 600px; }
+
+/* --- Button Utilities --- */
+.u-btn-link {
+  font-size: 0.75rem;
+  padding: 6px 14px;
+  text-decoration: none;
+}
+.u-btn-pill {
+  padding: 4px 10px;
+  font-size: 0.7rem;
+}
+.u-btn-full {
+  width: 100%;
+  margin-bottom: 10px;
+}

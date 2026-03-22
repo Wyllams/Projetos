@@ -10,6 +10,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './PartnerDashboard.css';
+import '../styles/utilities.css';
 
 export default function PartnerDashboard() {
   const navigate = useNavigate();
@@ -82,34 +83,26 @@ export default function PartnerDashboard() {
         if (roleProfile.role === 'cliente') { navigate('/client', { replace: true }); return; }
         navigate('/', { replace: true }); return;
       }
-      const { data: pData } = await supabase.from('projects').select('*');
-      if (pData) setProjects(pData);
-      
-      const { data: lData } = await supabase.from('leads').select('*');
-      if (lData) setLeads(lData);
+      // Parallel fetch all data at once for faster loading
+      const [pRes, lRes, sRes, eRes, mRes, adminRes, clientsRes, logRes] = await Promise.all([
+        supabase.from('projects').select('*'),
+        supabase.from('leads').select('*'),
+        supabase.from('stages').select('*'),
+        supabase.from('calendar_events').select('*'),
+        supabase.from('messages').select('*').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`).order('created_at', { ascending: true }),
+        supabase.from('profiles').select('*').eq('role', 'admin'),
+        supabase.from('clients').select('*').order('name'),
+        supabase.from('daily_logs').select('*'),
+      ]);
 
-      const { data: sData } = await supabase.from('stages').select('*');
-      if (sData) setStages(sData);
-
-      const { data: eData } = await supabase.from('calendar_events').select('*');
-      if (eData) setEvents(eData);
-
-      const { data: mData } = await supabase.from('messages')
-        .select('*')
-        .or(`sender_id.eq.${currentUser?.id},receiver_id.eq.${currentUser?.id}`)
-        .order('created_at', { ascending: true });
-      if (mData) setMessages(mData);
-
-      // Load admin users for chat
-      const { data: adminUsers } = await supabase.from('profiles').select('*').eq('role', 'admin');
-      if (adminUsers && adminUsers.length > 0) setAdminUser(adminUsers[0]);
-
-      // Load ALL clients for lookup (used to resolve names in chat)
-      const { data: clientsData } = await supabase.from('clients').select('*').order('name');
-      if (clientsData) setClients(clientsData);
-
-      const { data: dLogData } = await supabase.from('daily_logs').select('*');
-      if (dLogData) setLogs(dLogData);
+      if (pRes.data) setProjects(pRes.data);
+      if (lRes.data) setLeads(lRes.data);
+      if (sRes.data) setStages(sRes.data);
+      if (eRes.data) setEvents(eRes.data);
+      if (mRes.data) setMessages(mRes.data);
+      if (adminRes.data && adminRes.data.length > 0) setAdminUser(adminRes.data[0]);
+      if (clientsRes.data) setClients(clientsRes.data);
+      if (logRes.data) setLogs(logRes.data);
 
       setLoadingDb(false);
     }
@@ -757,8 +750,8 @@ export default function PartnerDashboard() {
           {/* PROJECTS */}
           {activeTab === 'projects' && (
             <div className="page active">
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                <div><div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase'}}>{projects.length} projetos em andamento</div><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem',marginTop:3}}>Meus Projetos Ativos</div></div>
+              <div className="u-section-header">
+                <div><div className="u-mono-label-xs">{projects.length} projetos em andamento</div><div className="u-syne-title u-mt-3">Meus Projetos Ativos</div></div>
                 <button className="btn gold" onClick={handleCreateProject}>Novo Projeto</button>
               </div>
               
@@ -782,13 +775,13 @@ export default function PartnerDashboard() {
 
           {activeTab === 'stages' && (
             <div className="page active">
-              <div style={{marginBottom:16}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase'}}>Gerenciamento de Etapas</div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem',marginTop:3}}>Etapas de Execução</div>
+              <div className="u-mb-16">
+                <div className="u-mono-label-xs">Gerenciamento de Etapas</div>
+                <div className="u-syne-title u-mt-3">Etapas de Execução</div>
               </div>
 
               {/* Project selector */}
-              <div className="card" style={{marginBottom:14}}>
+              <div className="card" className="u-mb-14">
                 <div className="ch"><span className="ct">Selecionar Projeto</span></div>
                 <div className="cb">
                   <select
@@ -808,7 +801,7 @@ export default function PartnerDashboard() {
               {selectedProject && (
                 <>
                   {/* Progress overview */}
-                  <div className="card" style={{marginBottom:14}}>
+                  <div className="card" className="u-mb-14">
                     <div className="ch"><span className="ct">📊 Progresso: {selectedProject.name}</span><span className="ca" style={{color:'var(--gold)'}}>{selectedProject.progress || 0}%</span></div>
                     <div className="cb">
                       <div className="prog-bar" style={{height:12,borderRadius:6,marginBottom:12}}><div className="prog-fill" style={{width:`${selectedProject.progress || 0}%`,borderRadius:6,transition:'width 0.3s'}}></div></div>
@@ -820,7 +813,7 @@ export default function PartnerDashboard() {
                   </div>
 
                   {/* Add new stage */}
-                  <div className="card" style={{marginBottom:14}}>
+                  <div className="card" className="u-mb-14">
                     <div className="ch"><span className="ct">➕ Adicionar Nova Etapa</span></div>
                     <div className="cb">
                       <div style={{display:'flex',gap:10}}>
@@ -831,7 +824,7 @@ export default function PartnerDashboard() {
                           value={newStageName}
                           onChange={e => setNewStageName(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && addStage()}
-                          style={{flex:1}}
+                          className="u-flex-1"
                         />
                         <button className="btn gold" onClick={addStage} style={{whiteSpace:'nowrap'}}>+ Adicionar</button>
                       </div>
@@ -846,7 +839,7 @@ export default function PartnerDashboard() {
                       {projectStages.sort((a: any, b: any) => a.order_index - b.order_index).map((stg: any, idx: number) => (
                         <div key={stg.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b)',transition:'background 0.15s',cursor:'pointer'}} onClick={() => toggleStage(stg.id, stg.status)}>
                           <div style={{width:24,height:24,borderRadius:6,border: stg.status === 'completed' ? '2px solid var(--green)' : '2px solid var(--b)',background: stg.status === 'completed' ? 'var(--green)' : 'transparent',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',color:'#fff',flexShrink:0,transition:'all 0.2s'}}>{stg.status === 'completed' && '✓'}</div>
-                          <div style={{flex:1}}>
+                          <div className="u-flex-1">
                             <div style={{fontWeight:600,fontSize:'0.88rem',textDecoration: stg.status === 'completed' ? 'line-through' : 'none',color: stg.status === 'completed' ? 'var(--t3)' : 'var(--text)',transition:'all 0.2s'}}>{idx + 1}. {stg.name}</div>
                             <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:2}}>{stg.status === 'completed' ? 'Concluída ✓' : stg.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</div>
                           </div>
@@ -866,7 +859,7 @@ export default function PartnerDashboard() {
               {!selectedProject && (
                 <div className="card">
                   <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div style={{fontSize:'2rem',marginBottom:10}}>📋</div>
+                    <div className="u-emoji-icon">📋</div>
                     <div style={{fontSize:'0.9rem',marginBottom:6}}>Selecione um projeto acima para gerenciar suas etapas</div>
                     <div style={{fontSize:'0.75rem'}}>Ou clique em um projeto na aba <strong style={{color:'var(--gold)',cursor:'pointer'}} onClick={() => setActiveTab('projects')}>Projetos Ativos</strong></div>
                   </div>
@@ -878,7 +871,7 @@ export default function PartnerDashboard() {
           {/* CALENDAR */}
           {activeTab === 'calendar' && (
             <div className="page active" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div className="u-section-header">
                 <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Calendário de Obras</div>
                 <button className="btn gold" onClick={() => setIsNewEventOpen(true)}>+ Atividade</button>
               </div>
@@ -890,12 +883,12 @@ export default function PartnerDashboard() {
                   <div className="cb">
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
                       <div>
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Título *</label>
-                        <input className="f-inp" style={{width:'100%'}} placeholder="Ex: Vistoria da fundação" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
+                        <label className="u-mono-label">Título *</label>
+                        <input className="f-inp" className="u-w-full" placeholder="Ex: Vistoria da fundação" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
                       </div>
                       <div>
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Projeto (opcional)</label>
-                        <select className="f-inp" style={{width:'100%'}} value={newEvent.project_id} onChange={e => setNewEvent({...newEvent, project_id: e.target.value})}>
+                        <label className="u-mono-label">Projeto (opcional)</label>
+                        <select className="f-inp" className="u-w-full" value={newEvent.project_id} onChange={e => setNewEvent({...newEvent, project_id: e.target.value})}>
                           <option value="">-- Geral --</option>
                           {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
@@ -903,12 +896,12 @@ export default function PartnerDashboard() {
                     </div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
                       <div>
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Data *</label>
-                        <input className="f-inp" type="date" style={{width:'100%'}} value={newEvent.event_date} onChange={e => setNewEvent({...newEvent, event_date: e.target.value})} />
+                        <label className="u-mono-label">Data *</label>
+                        <input className="f-inp" type="date" className="u-w-full" value={newEvent.event_date} onChange={e => setNewEvent({...newEvent, event_date: e.target.value})} />
                       </div>
                       <div>
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Horário</label>
-                        <input className="f-inp" type="time" style={{width:'100%'}} value={newEvent.start_time} onChange={e => setNewEvent({...newEvent, start_time: e.target.value})} />
+                        <label className="u-mono-label">Horário</label>
+                        <input className="f-inp" type="time" className="u-w-full" value={newEvent.start_time} onChange={e => setNewEvent({...newEvent, start_time: e.target.value})} />
                       </div>
                     </div>
                     <button className="btn gold" onClick={addEvent}>📅 Agendar Atividade</button>
@@ -988,13 +981,13 @@ export default function PartnerDashboard() {
           {/* DAILY LOG */}
           {activeTab === 'dailylog' && (
             <div className="page active">
-              <div style={{marginBottom:16}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase'}}>Registro diário de atividades</div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem',marginTop:3}}>Log Diário de Atividades</div>
+              <div className="u-mb-16">
+                <div className="u-mono-label-xs">Registro diário de atividades</div>
+                <div className="u-syne-title u-mt-3">Log Diário de Atividades</div>
               </div>
 
               {/* Form */}
-              <div className="card" style={{marginBottom:14}}>
+              <div className="card" className="u-mb-14">
                 <div className="ch"><span className="ct">📝 Registrar hoje — {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
                 <div className="cb">
                   <div style={{marginBottom:12}}>
@@ -1008,7 +1001,7 @@ export default function PartnerDashboard() {
                     <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>O que foi feito hoje? *</label>
                     <textarea className="f-inp" style={{resize:'vertical',minHeight:100}} placeholder="Descreva as atividades realizadas hoje na obra..." value={logForm.log_text} onChange={e => setLogForm({...logForm, log_text: e.target.value})}></textarea>
                   </div>
-                  <div style={{marginBottom:14}}>
+                  <div className="u-mb-14">
                     <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Materiais utilizados</label>
                     <input className="f-inp" type="text" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})} />
                   </div>
@@ -1048,15 +1041,15 @@ export default function PartnerDashboard() {
           {/* LEADS */}
           {activeTab === 'leads' && (
             <div className="page active">
-              <div style={{marginBottom:16}}>
-                <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase'}}>{leads.length} leads atribuídos</div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem',marginTop:3}}>Leads Atribuídos</div>
+              <div className="u-mb-16">
+                <div className="u-mono-label-xs">{leads.length} leads atribuídos</div>
+                <div className="u-syne-title u-mt-3">Leads Atribuídos</div>
               </div>
               
               {leads.length === 0 && !loadingDb && (
                 <div className="card">
                   <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div style={{fontSize:'2rem',marginBottom:10}}>🎯</div>
+                    <div className="u-emoji-icon">🎯</div>
                     <div style={{fontSize:'0.9rem',marginBottom:6}}>Nenhum lead atribuído a você no momento</div>
                     <div style={{fontSize:'0.75rem'}}>Quando a equipe Bravo encaminhar clientes potenciais, eles aparecerão aqui para você gerenciar</div>
                   </div>
@@ -1068,7 +1061,7 @@ export default function PartnerDashboard() {
                   {/* Header - always visible */}
                   <div style={{padding:'14px 16px',cursor:'pointer',display:'flex',alignItems:'center',gap:12}} onClick={() => setExpandedLead(expandedLead === l.id ? null : l.id)}>
                     <div style={{width:10,height:10,borderRadius:'50%',background:getUrgencyColor(l.urgency || ''),flexShrink:0}}></div>
-                    <div style={{flex:1,minWidth:0}}>
+                    <div className="u-flex-1-min">
                       <div style={{fontWeight:700,fontSize:'0.92rem'}}>{l.name || 'Sem nome'}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)',marginTop:2}}>{l.service_type || 'Serviço'} · {l.city || 'Cidade n/d'} · {l.source || 'Manual'}</div>
                     </div>
@@ -1107,21 +1100,21 @@ export default function PartnerDashboard() {
                       {/* Quick contact buttons */}
                       <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
                         {l.phone && (
-                          <a href={`sms:${l.phone}`} className="btn gold" style={{fontSize:'0.75rem',padding:'6px 14px',textDecoration:'none'}}>💬 SMS</a>
+                          <a href={`sms:${l.phone}`} className="btn gold" className="u-btn-link">💬 SMS</a>
                         )}
                         {l.phone && (
-                          <a href={`tel:${l.phone}`} className="btn ghost" style={{fontSize:'0.75rem',padding:'6px 14px',textDecoration:'none'}}>📞 Call</a>
+                          <a href={`tel:${l.phone}`} className="btn ghost" className="u-btn-link">📞 Call</a>
                         )}
                         {l.phone && (
-                          <a href={`https://wa.me/1${l.phone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="btn ghost" style={{fontSize:'0.75rem',padding:'6px 14px',textDecoration:'none'}}>📱 WhatsApp</a>
+                          <a href={`https://wa.me/1${l.phone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="btn ghost" className="u-btn-link">📱 WhatsApp</a>
                         )}
                         {l.email && (
-                          <a href={`mailto:${l.email}`} className="btn ghost" style={{fontSize:'0.75rem',padding:'6px 14px',textDecoration:'none'}}>✉️ E-mail</a>
+                          <a href={`mailto:${l.email}`} className="btn ghost" className="u-btn-link">✉️ E-mail</a>
                         )}
                       </div>
 
                       {/* Status selector */}
-                      <div style={{marginBottom:14}}>
+                      <div className="u-mb-14">
                         <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:6}}>Status do Lead</label>
                         <select className="f-inp" value={l.status || 'Novo'} onChange={e => updateLeadStatus(l.id, e.target.value)}>
                           {leadStatuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1129,7 +1122,7 @@ export default function PartnerDashboard() {
                       </div>
 
                       {/* Notes */}
-                      <div style={{marginBottom:14}}>
+                      <div className="u-mb-14">
                         <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:6}}>Observações</label>
                         <textarea className="f-inp" style={{resize:'vertical',minHeight:70}} placeholder="Anote informações sobre este lead..." value={leadNotes[l.id] !== undefined ? leadNotes[l.id] : (l.notes || '')} onChange={e => setLeadNotes(prev => ({...prev, [l.id]: e.target.value}))}></textarea>
                         {leadNotes[l.id] !== undefined && leadNotes[l.id] !== (l.notes || '') && (
@@ -1158,7 +1151,7 @@ export default function PartnerDashboard() {
                   <div style={{flex:1,overflowY:'auto'}}>
                     <div onClick={() => setChatTab('admin')} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',cursor:'pointer',background:chatTab === 'admin' ? 'var(--gd)' : 'transparent',borderLeft:`3px solid ${chatTab === 'admin' ? 'var(--gold)' : 'transparent'}`,transition:'all .15s'}}>
                       <div style={{width:36,height:36,borderRadius:'50%',background:'var(--gd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',fontWeight:700,color:'var(--gold)',flexShrink:0}}>BH</div>
-                      <div style={{flex:1,minWidth:0}}>
+                      <div className="u-flex-1-min">
                         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'0.82rem',fontWeight:600}}>Bravo Homes Admin</div>
                         <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)'}}>Admin · Suporte / Coordenação</div>
                       </div>
@@ -1173,7 +1166,7 @@ export default function PartnerDashboard() {
                       return (
                         <div key={c.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer',background:isSelected ? 'var(--gd)' : 'transparent',borderLeft:`3px solid ${isSelected ? 'var(--gold)' : 'transparent'}`,position:'relative'}} onClick={() => { setChatTab('client'); setSelectedChatClient(c); }}>
                           <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(46,204,113,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.65rem',fontWeight:700,color:'var(--green)',flexShrink:0}}>{(c.name || 'CL').substring(0,2).toUpperCase()}</div>
-                          <div style={{flex:1,minWidth:0}}>
+                          <div className="u-flex-1-min">
                             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'0.8rem',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name || 'Cliente'}</div>
                             <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)'}}>{c.email || c.phone || ''}</div>
                           </div>
@@ -1190,7 +1183,7 @@ export default function PartnerDashboard() {
                   {/* Header */}
                   <div style={{padding:'14px 18px',borderBottom:'1px solid var(--b)',display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:32,height:32,borderRadius:'50%',background:chatTab === 'client' ? 'rgba(46,204,113,0.2)' : 'var(--gd)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.7rem',color:chatTab === 'client' ? 'var(--green)' : 'var(--gold)',flexShrink:0}}>{chatTab === 'client' ? (selectedChatClient?.name || 'CL').substring(0,2).toUpperCase() : 'BH'}</div>
-                    <div style={{flex:1}}>
+                    <div className="u-flex-1">
                       <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'0.88rem'}}>{chatTab === 'client' ? (selectedChatClient?.name || 'Selecione um cliente') : 'Bravo Homes Admin'}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)'}}>{chatTab === 'client' ? 'Conversa individual' : 'Admin · Suporte'} · 🟢 Real-time</div>
                     </div>
@@ -1230,10 +1223,10 @@ export default function PartnerDashboard() {
 
                   {/* Input bar */}
                   <div style={{padding:'12px 16px',borderTop:'1px solid var(--b)',display:'flex',gap:8,alignItems:'center'}}>
-                    <input ref={chatFileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style={{display:'none'}} onChange={e => sendChatFile(e.target.files)} />
+                    <input ref={chatFileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="u-hide" onChange={e => sendChatFile(e.target.files)} />
                     <button className="btn ghost" style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0}} onClick={() => chatFileRef.current?.click()} title="Attach file">📎</button>
                     <button className={`btn ${isRecording ? 'gold' : 'ghost'}`} style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0,animation:isRecording ? 'pulse 1s infinite' : 'none'}} onClick={isRecording ? stopRecording : startRecording} title={isRecording ? 'Stop recording' : 'Record audio'}>🎤</button>
-                    <input className="chat-input" style={{flex:1}} placeholder={isRecording ? '🔴 Recording... click mic to stop' : 'Type your message...'} value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatMsg); }}} disabled={isRecording} />
+                    <input className="chat-input" className="u-flex-1" placeholder={isRecording ? '🔴 Recording... click mic to stop' : 'Type your message...'} value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatMsg); }}} disabled={isRecording} />
                     <button className="btn gold" onClick={() => sendMessage(chatMsg)} disabled={isRecording || !chatMsg.trim()}>Send</button>
                   </div>
                 </div>
@@ -1280,12 +1273,12 @@ export default function PartnerDashboard() {
           {/* UPLOADS */}
           {activeTab === 'uploads' && (
             <div className="page active">
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div className="u-section-header">
                 <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Fotos &amp; Documentos</div>
               </div>
 
               {/* Project selector */}
-              <div className="card" style={{marginBottom:14}}>
+              <div className="card" className="u-mb-14">
                 <div className="ch"><span className="ct">📁 Selecionar Projeto</span></div>
                 <div className="cb">
                   <select
@@ -1302,10 +1295,10 @@ export default function PartnerDashboard() {
               {uploadProjectId && (
                 <>
                   {/* Upload zone */}
-                  <div className="card" style={{marginBottom:14}}>
+                  <div className="card" className="u-mb-14">
                     <div className="ch"><span className="ct">📸 Enviar Arquivos</span></div>
                     <div className="cb">
-                      <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style={{display:'none'}} onChange={e => handleFileUpload(e.target.files)} />
+                      <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="u-hide" onChange={e => handleFileUpload(e.target.files)} />
                       <div
                         className="upload-zone"
                         onClick={() => fileInputRef.current?.click()}
@@ -1323,7 +1316,7 @@ export default function PartnerDashboard() {
 
                   {/* Photo gallery */}
                   {projectFiles.filter(f => f.file_type?.startsWith('image/')).length > 0 && (
-                    <div className="card" style={{marginBottom:14}}>
+                    <div className="card" className="u-mb-14">
                       <div className="ch"><span className="ct">🖼️ Galeria de Fotos</span><span className="ca">{projectFiles.filter(f => f.file_type?.startsWith('image/')).length} fotos</span></div>
                       <div className="cb">
                         <div className="photo-grid">
@@ -1350,7 +1343,7 @@ export default function PartnerDashboard() {
                       {projectFiles.filter(f => !f.file_type?.startsWith('image/')).map((f: any) => (
                         <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b)'}}>
                           <span style={{fontSize:'1.4rem'}}>{getFileIcon(f.file_type)}</span>
-                          <div style={{flex:1,minWidth:0}}>
+                          <div className="u-flex-1-min">
                             <div style={{fontSize:'0.82rem',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.file_name}</div>
                             <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',textTransform:'uppercase'}}>{f.file_type?.split('/').pop()} · {new Date(f.created_at).toLocaleDateString()}</div>
                           </div>
@@ -1366,7 +1359,7 @@ export default function PartnerDashboard() {
               {!uploadProjectId && (
                 <div className="card">
                   <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div style={{fontSize:'2rem',marginBottom:10}}>📁</div>
+                    <div className="u-emoji-icon">📁</div>
                     <div style={{fontSize:'0.9rem'}}>Selecione um projeto acima para gerenciar fotos e documentos</div>
                   </div>
                 </div>
@@ -1377,7 +1370,7 @@ export default function PartnerDashboard() {
           {/* PROFILE */}
           {activeTab === 'profile' && (
             <div className="page active">
-              <div style={{marginBottom:16}}><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>My Partner Profile</div></div>
+              <div className="u-mb-16"><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>My Partner Profile</div></div>
               <div style={{display:'flex',flexDirection:'column',gap:14}}>
                 {/* ROW 1: Personal Info + Notifications */}
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'stretch'}}>
@@ -1396,7 +1389,7 @@ export default function PartnerDashboard() {
                     </div>
                     <div className="cb">
                       <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:16}}>
-                        <input ref={profileAvatarRef} type="file" accept="image/*" style={{display:'none'}} onChange={e => uploadAvatar(e.target.files)} />
+                        <input ref={profileAvatarRef} type="file" accept="image/*" className="u-hide" onChange={e => uploadAvatar(e.target.files)} />
                         <div onClick={() => profileAvatarRef.current?.click()} style={{width:56,height:56,borderRadius:'50%',cursor:'pointer',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--gold)',position:'relative',flexShrink:0}}>
                           {profileData?.avatar_url ? (
                             <img src={profileData.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} />
@@ -1405,7 +1398,7 @@ export default function PartnerDashboard() {
                           )}
                           <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.5)',textAlign:'center',fontSize:'0.5rem',color:'#fff',padding:'2px 0'}}>📷</div>
                         </div>
-                        <div style={{flex:1}}>
+                        <div className="u-flex-1">
                           {profileEditing ? (
                             <input className="f-inp" value={profileForm.full_name || ''} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} placeholder="Full Name" style={{fontWeight:700,fontSize:'1rem',marginBottom:4}} />
                           ) : (
@@ -1417,19 +1410,19 @@ export default function PartnerDashboard() {
                       </div>
                       {profileEditing ? (
                         <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>Phone</label><input className="f-inp" value={profileForm.phone || ''} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="(407) 555-1234" /></div>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>Specialty</label><select className="f-inp" value={profileForm.specialty || ''} onChange={e => setProfileForm({...profileForm, specialty: e.target.value})}><option value="">Select...</option><option value="General Contractor">General Contractor</option><option value="Kitchen Remodel">Kitchen Remodel</option><option value="Bathroom Remodel">Bathroom Remodel</option><option value="Full Home Renovation">Full Home Renovation</option><option value="Painting & Finishing">Painting & Finishing</option><option value="Flooring">Flooring</option><option value="Electrical">Electrical</option><option value="Plumbing">Plumbing</option><option value="Roofing">Roofing</option></select></div>
+                          <div className="u-grid-2">
+                            <div><label className="u-mono-label-sm">Phone</label><input className="f-inp" value={profileForm.phone || ''} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="(407) 555-1234" /></div>
+                            <div><label className="u-mono-label-sm">Specialty</label><select className="f-inp" value={profileForm.specialty || ''} onChange={e => setProfileForm({...profileForm, specialty: e.target.value})}><option value="">Select...</option><option value="General Contractor">General Contractor</option><option value="Kitchen Remodel">Kitchen Remodel</option><option value="Bathroom Remodel">Bathroom Remodel</option><option value="Full Home Renovation">Full Home Renovation</option><option value="Painting & Finishing">Painting & Finishing</option><option value="Flooring">Flooring</option><option value="Electrical">Electrical</option><option value="Plumbing">Plumbing</option><option value="Roofing">Roofing</option></select></div>
                           </div>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>Company Name</label><input className="f-inp" value={profileForm.company_name || ''} onChange={e => setProfileForm({...profileForm, company_name: e.target.value})} placeholder="Your Company LLC" /></div>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>License Number</label><input className="f-inp" value={profileForm.license_number || ''} onChange={e => setProfileForm({...profileForm, license_number: e.target.value})} placeholder="CGC-123456" /></div>
+                          <div className="u-grid-2">
+                            <div><label className="u-mono-label-sm">Company Name</label><input className="f-inp" value={profileForm.company_name || ''} onChange={e => setProfileForm({...profileForm, company_name: e.target.value})} placeholder="Your Company LLC" /></div>
+                            <div><label className="u-mono-label-sm">License Number</label><input className="f-inp" value={profileForm.license_number || ''} onChange={e => setProfileForm({...profileForm, license_number: e.target.value})} placeholder="CGC-123456" /></div>
                           </div>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>City</label><input className="f-inp" value={profileForm.city || ''} onChange={e => setProfileForm({...profileForm, city: e.target.value})} placeholder="Orlando" /></div>
-                            <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>State</label><select className="f-inp" value={profileForm.state || ''} onChange={e => setProfileForm({...profileForm, state: e.target.value})}><option value="">Select...</option><option value="FL">Florida</option><option value="TX">Texas</option><option value="CA">California</option><option value="NY">New York</option><option value="GA">Georgia</option><option value="NC">North Carolina</option><option value="NJ">New Jersey</option><option value="PA">Pennsylvania</option></select></div>
+                          <div className="u-grid-2">
+                            <div><label className="u-mono-label-sm">City</label><input className="f-inp" value={profileForm.city || ''} onChange={e => setProfileForm({...profileForm, city: e.target.value})} placeholder="Orlando" /></div>
+                            <div><label className="u-mono-label-sm">State</label><select className="f-inp" value={profileForm.state || ''} onChange={e => setProfileForm({...profileForm, state: e.target.value})}><option value="">Select...</option><option value="FL">Florida</option><option value="TX">Texas</option><option value="CA">California</option><option value="NY">New York</option><option value="GA">Georgia</option><option value="NC">North Carolina</option><option value="NJ">New Jersey</option><option value="PA">Pennsylvania</option></select></div>
                           </div>
-                          <div><label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:4}}>Bio / About</label><textarea className="f-inp" style={{resize:'vertical',minHeight:60}} value={profileForm.bio || ''} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} placeholder="Tell clients about your experience and expertise..." /></div>
+                          <div><label className="u-mono-label-sm">Bio / About</label><textarea className="f-inp" style={{resize:'vertical',minHeight:60}} value={profileForm.bio || ''} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} placeholder="Tell clients about your experience and expertise..." /></div>
                         </div>
                       ) : (
                         <>
@@ -1503,17 +1496,17 @@ export default function PartnerDashboard() {
             </div>
             <div className="modal-body">
               <div style={{marginBottom:'12px'}}>
-                <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Título</label>
-                <input className="f-inp" style={{width:'100%'}} value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} />
+                <label className="u-mono-label">Título</label>
+                <input className="f-inp" className="u-w-full" value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} />
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div className="u-grid-2">
                 <div>
-                  <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Data *</label>
-                  <input className="f-inp" type="date" style={{width:'100%'}} value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} />
+                  <label className="u-mono-label">Data *</label>
+                  <input className="f-inp" type="date" className="u-w-full" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} />
                 </div>
                 <div>
-                  <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Horário *</label>
-                  <input className="f-inp" type="time" style={{width:'100%'}} value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} />
+                  <label className="u-mono-label">Horário *</label>
+                  <input className="f-inp" type="time" className="u-w-full" value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} />
                 </div>
               </div>
             </div>

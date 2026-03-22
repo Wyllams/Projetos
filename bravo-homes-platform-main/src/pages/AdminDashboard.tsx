@@ -20,6 +20,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './AdminDashboard.css';
+import '../styles/utilities.css';
 
 ChartJS.register(
   CategoryScale,
@@ -290,31 +291,24 @@ export default function AdminDashboard() {
          }
       }
       
-      const { data: projData } = await supabase.from('projects').select('*');
-      if (projData) setProjects(projData);
+      // Parallel fetch all data at once for faster loading
+      const [projRes, leadsRes, lpRes, cliRes, partRes, chatRes, calRes] = await Promise.all([
+        supabase.from('projects').select('*'),
+        supabase.from('leads').select('*, clients(*)').order('created_at', { ascending: false }),
+        supabase.from('landing_pages').select('*'),
+        supabase.from('clients').select('*'),
+        supabase.from('profiles').select('*').eq('role', 'parceiro'),
+        currentUser ? supabase.from('messages').select('sender_id, receiver_id').or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`) : Promise.resolve({ data: null }),
+        supabase.from('calendar_events').select('*'),
+      ]);
 
-      const { data: leadsData } = await supabase.from('leads').select('*, clients(*)').order('created_at', { ascending: false });
-      if (leadsData) setLeads(leadsData);
-
-      const { data: lpData } = await supabase.from('landing_pages').select('*');
-      if (lpData) setLandingPages(lpData);
-
-      const { data: cliData } = await supabase.from('clients').select('*');
-      if (cliData) setClients(cliData);
-
-      const { data: partData } = await supabase.from('profiles').select('*').eq('role', 'parceiro');
-      if (partData) setPartners(partData);
-
-      // Load all messages involving admin for chat sidebar derivation
-      if (currentUser) {
-        const { data: chatMsgs } = await supabase.from('messages')
-          .select('sender_id, receiver_id')
-          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
-        if (chatMsgs) setAllChatMessages(chatMsgs);
-      }
-
-      const { data: calData } = await supabase.from('calendar_events').select('*');
-      if (calData) setCalendarEvents(calData);
+      if (projRes.data) setProjects(projRes.data);
+      if (leadsRes.data) setLeads(leadsRes.data);
+      if (lpRes.data) setLandingPages(lpRes.data);
+      if (cliRes.data) setClients(cliRes.data);
+      if (partRes.data) setPartners(partRes.data);
+      if (chatRes.data) setAllChatMessages(chatRes.data);
+      if (calRes.data) setCalendarEvents(calRes.data);
 
       setLoadingDb(false);
       
@@ -1222,10 +1216,10 @@ export default function AdminDashboard() {
                       <thead><tr><th>Cliente</th><th>Parceiro</th><th>Progresso</th><th>Entrega</th></tr></thead>
                       <tbody>
                         {projects.length === 0 && !loadingDb && (
-                          <tr><td colSpan={4} style={{textAlign: 'center', padding: '20px', color: 'var(--t2)'}}>Nenhum projeto encontrado.</td></tr>
+                          <tr><td colSpan={4} className="u-empty-state">Nenhum projeto encontrado.</td></tr>
                         )}
                         {projects.slice(0, 3).map((p: any) => (
-                          <tr key={p.id} style={{cursor:'pointer'}} onClick={() => setActiveTab('projects')}>
+                          <tr key={p.id} className="u-cursor-pointer" onClick={() => setActiveTab('projects')}>
                             <td><div style={{fontWeight:600}}>{p.name || 'Projeto sem nome'}</div><div style={{fontSize:'0.72rem',color:'var(--t2)'}}>{p.service_type || 'Serviço'} · ${p.contract_value || '0'}</div></td>
                             <td><div className="av p1" style={{width:'24px',height:'24px',fontSize:'0.6rem'}}>MR</div></td>
                             <td style={{width:'90px'}}><div className="prog-bar"><div className="prog-fill" style={{width:`${p.progress || 0}%`}}></div></div><div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--gold)',marginTop:'3px'}}>{p.progress || 0}%</div></td>
@@ -1318,28 +1312,28 @@ export default function AdminDashboard() {
           {/* PROJECTS TAB */}
           {activeTab === 'projects' && (
             <div className="page active">
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                 <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Projetos Ativos — Visão Admin</div>
+              <div className="u-section-header">
+                 <div className="u-syne-title">Projetos Ativos — Visão Admin</div>
                  <button className="btn gold" onClick={handleCreateProject}>Novo Projeto</button>
               </div>
               <div className="card">
-                <div className="cb" style={{padding:0}}>
+                <div className="cb" className="u-p-0">
                   <table className="tbl">
                     <thead><tr><th>Cliente</th><th>Serviço</th><th>Valor</th><th>Progresso</th><th>Status</th><th style={{textAlign:'center'}}>Ação</th></tr></thead>
                     <tbody>
                       {projects.length === 0 && !loadingDb && (
-                        <tr><td colSpan={6} style={{textAlign: 'center', padding: '20px', color: 'var(--t2)'}}>Nenhum projeto em andamento.</td></tr>
+                        <tr><td colSpan={6} className="u-empty-state">Nenhum projeto em andamento.</td></tr>
                       )}
                       {projects.map((p: any) => (
                         <tr key={p.id}>
                           <td><b>{p.name || 'Projeto'}</b></td>
                           <td>{p.service_type || 'Serviço'}</td>
-                          <td style={{color:'var(--gold)'}}>${p.contract_value || '0'}</td>
+                          <td className="u-text-gold">${p.contract_value || '0'}</td>
                           <td><div className="prog-bar" style={{width:'80px'}}><div className="prog-fill" style={{width:`${p.progress || 0}%`}}></div></div><div style={{fontSize:'.65rem',color:'var(--t2)',marginTop:'3px'}}>{p.progress || 0}%</div></td>
                           <td><span className={`status-b ${p.status === 'active' ? 'sb-active' : ''}`}>{p.status || 'ND'}</span></td>
                           <td>
                             <div style={{display:'flex',gap:'12px',justifyContent:'center',alignItems:'center'}}>
-                              <button className="btn ghost" style={{padding:'4px 10px',fontSize:'.7rem'}} onClick={() => {
+                              <button className="btn ghost" className="u-btn-pill" onClick={() => {
                                 setNewProjectForm({ name: p.name || '', service_type: p.service_type || '', contract_value: String(p.contract_value || ''), deadline: p.deadline || '' });
                                 setEditingProjectId(p.id);
                                 setIsNewProjectOpen(true);
@@ -1366,9 +1360,9 @@ export default function AdminDashboard() {
           {/* CALENDAR TAB */}
           {activeTab === 'calendar' && (
             <div className="page active" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Calendário de Vistorias e Agendamentos</div>
-                <div style={{display:'flex', gap:'8px'}}>
+              <div className="u-section-header">
+                <div className="u-syne-title">Calendário de Vistorias e Agendamentos</div>
+                <div className="u-flex-gap-8">
                   <button className="btn ghost" onClick={handleGoogleSync} style={{display:'flex', alignItems:'center', gap:'6px'}}>
                     <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style={{width:'14px'}} alt="GCal" />
                     Sincronizar Google
@@ -1425,17 +1419,17 @@ export default function AdminDashboard() {
           {/* PARTNERS TAB */}
           {activeTab === 'partners' && (
             <div className="page active">
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Parceiros e Contratados</div>
+              <div className="u-section-header">
+                <div className="u-syne-title">Parceiros e Contratados</div>
                 <button className="btn ghost" onClick={() => setIsPartnerOpen(true)}>Adicionar Parceiro</button>
               </div>
               <div className="card">
-                <div className="cb" style={{padding:0}}>
+                <div className="cb" className="u-p-0">
                   <table className="tbl">
                     <thead><tr><th>Nome / Cidade</th><th>Especialidade</th><th>Projetos</th><th>Status</th><th>Ações</th></tr></thead>
                     <tbody>
                       {partners.length === 0 && !loadingDb && (
-                        <tr><td colSpan={5} style={{textAlign: 'center', padding: '20px', color: 'var(--t2)'}}>Nenhum parceiro encontrado.</td></tr>
+                        <tr><td colSpan={5} className="u-empty-state">Nenhum parceiro encontrado.</td></tr>
                       )}
                       {partners.map((p: any) => (
                         <tr key={p.id}>
@@ -1444,7 +1438,7 @@ export default function AdminDashboard() {
                               <div className="av" style={{background:'var(--bg3)', border:'1px solid var(--b)', width:'32px', height:'32px'}}>{(p.name || p.full_name || 'N/A').substring(0,2).toUpperCase()}</div>
                               <div>
                                 <b>{p.name || p.full_name || 'Sem nome'}</b>
-                                <div style={{fontSize:'.7rem', color:'var(--t2)'}}>{p.city || 'Georgia'} • {p.phone || 'Sem contato'}</div>
+                                <div className="u-mono-tiny">{p.city || 'Georgia'} • {p.phone || 'Sem contato'}</div>
                               </div>
                             </div>
                           </td>
@@ -1459,8 +1453,8 @@ export default function AdminDashboard() {
                             })()
                           }</td>
                           <td>
-                            <div style={{display:'flex', gap:'8px'}}>
-                              <button className="btn ghost" style={{padding:'4px 10px',fontSize:'.7rem'}} onClick={() => setSelectedPartner(p)}>Ver Perfil</button>
+                            <div className="u-flex-gap-8">
+                              <button className="btn ghost" className="u-btn-pill" onClick={() => setSelectedPartner(p)}>Ver Perfil</button>
                             </div>
                           </td>
                         </tr>
@@ -1475,20 +1469,20 @@ export default function AdminDashboard() {
           {/* ALL LEADS TAB */}
           {activeTab === 'allleads' && (
             <div className="page active">
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Todos os Leads</div>
+              <div className="u-section-header">
+                <div className="u-syne-title">Todos os Leads</div>
                 <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Lead</button>
               </div>
               <div className="card">
-                <div className="cb" style={{padding:0}}>
+                <div className="cb" className="u-p-0">
                   <table className="tbl">
                     <thead><tr><th>Lead / Cliente</th><th>Serviço / Cidade</th><th>Valor</th><th>Temperatura</th><th>Status</th><th>Criado em</th><th></th></tr></thead>
                     <tbody>
                       {leads.map(l => (
-                        <tr key={l.id} style={{cursor:'pointer'}} onClick={() => setSelectedLead(l)}>
+                        <tr key={l.id} className="u-cursor-pointer" onClick={() => setSelectedLead(l)}>
                           <td><b>{l.clients?.name || l.name || 'Lead s/ Nome'}</b></td>
                           <td>{l.service_type} • {l.city}</td>
-                          <td style={{color:'var(--gold)'}}>${l.estimated_value || 'N/D'}</td>
+                          <td className="u-text-gold">${l.estimated_value || 'N/D'}</td>
                           <td>
                             {l.urgency === 'hot' && <span className="urg hot">QUENTE</span>}
                             {l.urgency === 'warm' && <span className="urg warm">MORNO</span>}
@@ -1518,16 +1512,16 @@ export default function AdminDashboard() {
           {/* LANDING PAGES TAB */}
           {activeTab === 'lp' && (
             <div className="page active">
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Landing Pages</div>
+              <div className="u-section-header">
+                <div className="u-syne-title">Landing Pages</div>
                 <button className="btn gold" onClick={() => setIsLPOpen(true)}>+ Nova LP</button>
               </div>
               <div className="card">
-                <div className="cb" style={{padding:0}}>
+                <div className="cb" className="u-p-0">
                   <table className="tbl">
                     <thead><tr><th style={{width:'18%'}}>Página (Cidade)</th><th style={{width:'12%'}}>Status</th><th style={{width:'14%'}}>Visitantes</th><th style={{width:'14%'}}>Leads Gerados</th><th style={{width:'14%'}}>Conversão</th><th style={{width:'28%',textAlign:'center'}}>Ação</th></tr></thead>
                     <tbody>
-                      {landingPages.length === 0 && !loadingDb && <tr><td colSpan={6} style={{textAlign: 'center', padding: '20px', color: 'var(--t2)'}}>Nenhuma LP encontrada.</td></tr>}
+                      {landingPages.length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhuma LP encontrada.</td></tr>}
                       {landingPages.map(lp => {
                         const convRate = lp.visitors > 0 ? Math.round((lp.leads_count / lp.visitors) * 100) : 0;
                         return (
@@ -1567,12 +1561,12 @@ export default function AdminDashboard() {
           {/* CLIENTS TAB */}
           {activeTab === 'clients' && (
             <div className="page active">
-              <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Clientes da Bravo Homes</div>
+              <div className="u-section-header">
+                <div className="u-syne-title">Clientes da Bravo Homes</div>
                 <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Cliente</button>
               </div>
               <div className="card">
-                <div className="cb" style={{padding:0}}>
+                <div className="cb" className="u-p-0">
                   <table className="tbl">
                     <thead><tr>
                       <th style={{width: '20%'}}>Nome do Cliente</th>
@@ -1583,17 +1577,17 @@ export default function AdminDashboard() {
                       <th style={{width: '15%', textAlign: 'center'}}>Ações</th>
                     </tr></thead>
                     <tbody>
-                      {clients.length === 0 && !loadingDb && <tr><td colSpan={6} style={{textAlign: 'center', padding: '20px', color: 'var(--t2)'}}>Nenhum cliente cadastrado.</td></tr>}
+                      {clients.length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhum cliente cadastrado.</td></tr>}
                       {clients.map(c => (
                         <tr key={c.id}>
                           <td><b>{c.name}</b></td>
                           <td>{c.email}</td>
                           <td style={{color: 'var(--t2)', fontSize: '0.85rem'}}>{c.phone || '-'}</td>
-                          <td>{c.address}<div style={{fontSize:'.7rem', color:'var(--t2)'}}>{c.city}, {c.state}</div></td>
+                          <td>{c.address}<div className="u-mono-tiny">{c.city}, {c.state}</div></td>
                           <td><div style={{fontSize:'0.7rem',color:'var(--t3)'}}>{new Date(c.created_at).toLocaleDateString('pt-BR')} - {new Date(c.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div></td>
                           <td style={{textAlign: 'center', position: 'relative'}}>
                             <div style={{display:'flex', alignItems: 'center', justifyContent: 'center'}}>
-                              <button className="btn ghost" style={{padding:'4px 10px',fontSize:'.7rem'}} onClick={() => showToast('O Perfil Completo e Histórico de CRM do cliente estará disponível nas próximas atualizações.')}>Ver Histórico</button>
+                              <button className="btn ghost" className="u-btn-pill" onClick={() => showToast('O Perfil Completo e Histórico de CRM do cliente estará disponível nas próximas atualizações.')}>Ver Histórico</button>
                               <button className="btn ghost" style={{position: 'absolute', right: '16px', padding:'4px 10px',fontSize:'.85rem', color: 'var(--red)', borderColor: 'rgba(231,76,60,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}} onClick={() => handleDeleteClient(c.id)} title="Excluir Cliente">🗑️</button>
                             </div>
                           </td>
@@ -1609,9 +1603,9 @@ export default function AdminDashboard() {
           {/* FINANCES TAB */}
           {activeTab === 'finances' && (
             <div className="page active">
-              <div style={{marginBottom:16}}><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Financeiro</div></div>
+              <div style={{marginBottom:16}}><div className="u-syne-title">Financeiro</div></div>
               <div className="g3">
-                 <div className="kpi"><div className="kl">Faturamento Bruto</div><div className="kv" style={{color:'var(--gold)'}}>${grossRevenue.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
+                 <div className="kpi"><div className="kl">Faturamento Bruto</div><div className="kv" className="u-text-gold">${grossRevenue.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
                  <div className="kpi"><div className="kl">A Receber</div><div className="kv">${toReceive.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
                  <div className="kpi"><div className="kl">Pago aos Parceiros</div><div className="kv">${paidToPartners.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
               </div>
@@ -1625,7 +1619,7 @@ export default function AdminDashboard() {
            {/* SETTINGS TAB */}
           {activeTab === 'settings' && (
             <div className="page active">
-              <div style={{marginBottom:16}}><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>{t('platformSettings')}</div></div>
+              <div style={{marginBottom:16}}><div className="u-syne-title">{t('platformSettings')}</div></div>
               
               {/* ROW 1: Perfil | Segurança | Notificações */}
               <div className="settings-grid-3">
@@ -1651,9 +1645,9 @@ export default function AdminDashboard() {
                         {isUploadingAvatar && <div style={{fontSize: '0.72rem', color: 'var(--gold)', marginTop: '2px'}}>{t('uploading')}</div>}
                       </div>
                     </div>
-                    <div style={{marginBottom:'10px'}}><label className="f-label">{t('fullName')}</label><input type="text" className="f-inp" value={adminName} onChange={(e) => setAdminName(e.target.value)} /></div>
-                    <div style={{marginBottom:'10px'}}><label className="f-label">{t('email')}</label><input type="text" className="f-inp" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} /></div>
-                    <div style={{marginBottom:'10px'}}><label className="f-label">Telefone</label><input type="tel" className="f-inp" placeholder="(00) 00000-0000" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} /></div>
+                    <div className="u-mb-10"><label className="f-label">{t('fullName')}</label><input type="text" className="f-inp" value={adminName} onChange={(e) => setAdminName(e.target.value)} /></div>
+                    <div className="u-mb-10"><label className="f-label">{t('email')}</label><input type="text" className="f-inp" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} /></div>
+                    <div className="u-mb-10"><label className="f-label">Telefone</label><input type="tel" className="f-inp" placeholder="(00) 00000-0000" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} /></div>
                     <div style={{display:'flex',justifyContent:'flex-end',marginTop:'24px'}}><button className="btn gold" onClick={handleProfileSave}>{t('saveChanges')}</button></div>
                   </div>
                 </div>
@@ -1662,15 +1656,15 @@ export default function AdminDashboard() {
                 <div className="card" style={{display:'flex',flexDirection:'column'}}>
                   <div className="ch"><span className="ct">🔒 {t('security')}</span></div>
                   <div className="cb" style={{display:'flex',flexDirection:'column',flex:1}}>
-                    <div style={{marginBottom:'10px'}}>
+                    <div className="u-mb-10">
                       <label className="f-label">{t('currentPassword')}</label>
                       <input type="password" className="f-inp" placeholder="••••••••" />
                     </div>
-                    <div style={{marginBottom:'10px'}}>
+                    <div className="u-mb-10">
                       <label className="f-label">{t('newPassword')}</label>
                       <input type="password" className="f-inp" placeholder={t('min8chars')} />
                     </div>
-                    <div style={{marginBottom:'10px'}}>
+                    <div className="u-mb-10">
                       <label className="f-label">{t('confirmPassword')}</label>
                       <input type="password" className="f-inp" placeholder={t('repeatPassword')} />
                     </div>
@@ -1843,7 +1837,7 @@ export default function AdminDashboard() {
                             <div style={{fontSize: '1.2rem', animation: 'pulsing 1s infinite'}}>🔴</div>
                             <style dangerouslySetInnerHTML={{__html: `@keyframes pulsing { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }`}} />
                             <div>Gravando: {formatTime(recordingTime)}</div>
-                            <div style={{flex: 1}}></div>
+                            <div className="u-flex-1"></div>
                             <button type="button" className="btn ghost" style={{color: 'var(--red)'}} onClick={cancelRecording}>Cancelar</button>
                             <button type="button" className="btn gold" onClick={stopRecordingAndSend}>Enviar Áudio</button>
                           </div>
@@ -1901,14 +1895,14 @@ export default function AdminDashboard() {
               <button className="dclose" style={{marginTop: '-8px'}} onClick={() => setSelectedLead(null)}>✕</button>
             </div>
             <div className="modal-body" style={{display: 'flex', gap: '20px'}}>
-              <div style={{flex: 1}}>
+              <div className="u-flex-1">
                 <div className="d-row">
                   <div className="dfield"><div className="dlabel">Serviço</div><div className="dval">{selectedLead.service_type || 'N/D'}</div></div>
                   <div className="dfield"><div className="dlabel">Local</div><div className="dval">{selectedLead.city || 'N/D'}</div></div>
                   <div className="dfield">
                     <div className="dlabel">Valor Est.</div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-                      <span className="dval big" style={{color: 'var(--gold)'}}>$</span>
+                      <span className="dval big" className="u-text-gold">$</span>
                       <input 
                         type="number"
                         className="dval big" 
@@ -2028,7 +2022,7 @@ export default function AdminDashboard() {
       {/* EVENT MODAL */}
       {isEventModalOpen && (
         <div className="modal-overlay open" onClick={() => setIsEventModalOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
             <div className="modal-head">
               <div className="modal-title">{eventForm.lead_id && selectedLead ? `Agendar Vistoria: ${selectedLead.clients?.name || selectedLead.name}` : 'Criar Novo Agendamento'}</div>
               <button className="dclose" onClick={() => setIsEventModalOpen(false)}>✕</button>
@@ -2036,8 +2030,8 @@ export default function AdminDashboard() {
             <form onSubmit={handleEventSubmit}>
               <div className="modal-body">
                 {(!eventForm.lead_id || !selectedLead) && (
-                  <div className="f-row" style={{marginBottom: '15px'}}>
-                    <div style={{width: '100%'}}>
+                  <div className="f-row" className="u-mb-15">
+                    <div className="u-w-full">
                       <label className="f-label">Selecionar Lead / Cliente *</label>
                       <select required className="f-inp" value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
                         <option value="">-- Selecione o Lead --</option>
@@ -2107,7 +2101,7 @@ export default function AdminDashboard() {
       {/* LP MODAL */}
       {isLPOpen && (
         <div className="modal-overlay open" onClick={() => setIsLPOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
             <div className="modal-head">
               <div className="modal-title">Nova Landing Page</div>
               <button className="dclose" onClick={() => setIsLPOpen(false)}>✕</button>
@@ -2115,13 +2109,13 @@ export default function AdminDashboard() {
             <form onSubmit={handleLPSubmit}>
               <div className="modal-body">
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">Serviço / Nome da Página *</label>
                     <input required type="text" className="f-inp" placeholder="Ex: Kitchen Remodel" value={lpForm.name} onChange={e => setLpForm({...lpForm, name: e.target.value})} />
                   </div>
                 </div>
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">Cidade / Região Alvo *</label>
                     <input required type="text" className="f-inp" placeholder="Ex: Alpharetta" value={lpForm.city} onChange={e => setLpForm({...lpForm, city: e.target.value})} />
                   </div>
@@ -2139,7 +2133,7 @@ export default function AdminDashboard() {
       {/* PARTNER MODAL */}
       {isPartnerOpen && (
         <div className="modal-overlay open" onClick={() => setIsPartnerOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
             <div className="modal-head">
               <div className="modal-title">Novo Parceiro / Contratado</div>
               <button className="dclose" onClick={() => setIsPartnerOpen(false)}>✕</button>
@@ -2147,19 +2141,19 @@ export default function AdminDashboard() {
             <form onSubmit={handlePartnerSubmit}>
               <div className="modal-body">
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">Nome da Empresa ou Profissional *</label>
                     <input required type="text" className="f-inp" placeholder="Ex: Obras Rápidas LLC" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} />
                   </div>
                 </div>
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">E-mail do Parceiro *</label>
                     <input type="email" className="f-inp" placeholder="parceiro@email.com" value={partnerForm.email} onChange={e => setPartnerForm({...partnerForm, email: e.target.value})} required />
                   </div>
                 </div>
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">Senha de Acesso *</label>
                     <input type="password" className="f-inp" placeholder="Mínimo 6 caracteres" value={partnerForm.password} onChange={e => setPartnerForm({...partnerForm, password: e.target.value})} required />
                   </div>
@@ -2175,7 +2169,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="f-row">
-                  <div style={{width: '100%'}}>
+                  <div className="u-w-full">
                     <label className="f-label">Local de Atuação (Cidade)</label>
                     <input type="text" className="f-inp" placeholder="Ex: Marietta, GA" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} />
                   </div>
@@ -2203,7 +2197,7 @@ export default function AdminDashboard() {
                 <div style={{width: '60px', height: '60px', borderRadius: '50%', background: 'var(--gold)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold'}}>
                   {(selectedPartner.name || selectedPartner.full_name || 'PA').substring(0,2).toUpperCase()}
                 </div>
-                <div style={{flex:1}}>
+                <div className="u-flex-1">
                   <h2 style={{margin: 0, fontSize: '1.2rem', color: 'var(--gold)'}}>{selectedPartner.name || selectedPartner.full_name || 'Sem nome'}</h2>
                   <div style={{color: 'var(--t2)', fontSize: '0.9rem'}}>{selectedPartner.specialty || 'Empreiteiro Geral'}</div>
                 </div>
@@ -2212,28 +2206,28 @@ export default function AdminDashboard() {
               
               {editPartner ? (
                 <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
-                  <div className="f-row" style={{gap:'10px'}}>
-                    <div style={{flex:1}}>
+                  <div className="f-row" className="u-flex-gap-10">
+                    <div className="u-flex-1">
                       <label className="f-label">Nome *</label>
                       <input className="f-inp" value={editPartner.full_name || ''} onChange={e => setEditPartner({...editPartner, full_name: e.target.value})} />
                     </div>
                   </div>
-                  <div className="f-row" style={{gap:'10px'}}>
-                    <div style={{flex:1}}>
+                  <div className="f-row" className="u-flex-gap-10">
+                    <div className="u-flex-1">
                       <label className="f-label">Telefone</label>
                       <input className="f-inp" placeholder="(000) 000-0000" value={editPartner.phone || ''} onChange={e => setEditPartner({...editPartner, phone: e.target.value})} />
                     </div>
-                    <div style={{flex:1}}>
+                    <div className="u-flex-1">
                       <label className="f-label">Atuação (Cidade)</label>
                       <input className="f-inp" placeholder="Ex: Marietta, GA" value={editPartner.city || ''} onChange={e => setEditPartner({...editPartner, city: e.target.value})} />
                     </div>
                   </div>
-                  <div className="f-row" style={{gap:'10px'}}>
-                    <div style={{flex:1}}>
+                  <div className="f-row" className="u-flex-gap-10">
+                    <div className="u-flex-1">
                       <label className="f-label">Especialidade</label>
                       <input className="f-inp" placeholder="Ex: Piso, Elétrica" value={editPartner.specialty || ''} onChange={e => setEditPartner({...editPartner, specialty: e.target.value})} />
                     </div>
-                    <div style={{flex:1}}>
+                    <div className="u-flex-1">
                       <label className="f-label">Status</label>
                       <select className="f-inp" value={editPartner.state || 'available'} onChange={e => setEditPartner({...editPartner, state: e.target.value})}>
                         <option value="available">Disponível</option>
@@ -2359,7 +2353,7 @@ export default function AdminDashboard() {
         <div className="modal-overlay open" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '400px', textAlign: 'center'}}>
             <div className="modal-head" style={{justifyContent: 'center', borderBottom: 'none', paddingBottom: '0'}}>
-              <div className="modal-title" style={{color: 'var(--gold)'}}>Bravo Homes Group</div>
+              <div className="modal-title" className="u-text-gold">Bravo Homes Group</div>
             </div>
             <div className="modal-body" style={{fontSize: '1.05rem', lineHeight: '1.5', padding: '10px 22px 30px'}}>
               {confirmModal.msg}
@@ -2380,7 +2374,7 @@ export default function AdminDashboard() {
         <div className="modal-overlay open" onClick={() => setAlertModal({ show: false, msg: '' })}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '400px', textAlign: 'center'}}>
             <div className="modal-head" style={{justifyContent: 'center', borderBottom: 'none', paddingBottom: '0'}}>
-              <div className="modal-title" style={{color: 'var(--gold)'}}>Bravo Homes Group</div>
+              <div className="modal-title" className="u-text-gold">Bravo Homes Group</div>
             </div>
             <div className="modal-body" style={{fontSize: '1.05rem', lineHeight: '1.5', padding: '10px 22px 30px', color: 'var(--text)'}}>
               {alertModal.msg}
@@ -2394,21 +2388,21 @@ export default function AdminDashboard() {
       {/* NOVO PROJETO MODAL */}
       {isNewProjectOpen && (
         <div className="modal-overlay open" onClick={() => setIsNewProjectOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px'}}>
+          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
             <div className="modal-head">
               <div className="modal-title">{editingProjectId ? 'Editar Projeto' : 'Criar Novo Projeto'}</div>
               <button className="dclose" onClick={() => setIsNewProjectOpen(false)}>✕</button>
             </div>
             <form onSubmit={submitProjectForm}>
               <div className="modal-body">
-                <div className="f-row" style={{marginBottom: '15px'}}>
-                  <div style={{width: '100%'}}>
+                <div className="f-row" className="u-mb-15">
+                  <div className="u-w-full">
                     <label className="f-label">Nome do Projeto *</label>
                     <input required type="text" className="f-inp" placeholder="Ex: Reforma Johnson" value={newProjectForm.name} onChange={e => setNewProjectForm({...newProjectForm, name: e.target.value})} />
                   </div>
                 </div>
-                <div className="f-row" style={{marginBottom: '15px'}}>
-                  <div style={{width: '100%'}}>
+                <div className="f-row" className="u-mb-15">
+                  <div className="u-w-full">
                     <label className="f-label">Tipo de Serviço *</label>
                     <select required className="f-inp" value={newProjectForm.service_type} onChange={e => setNewProjectForm({...newProjectForm, service_type: e.target.value})}>
                       <option value="Reforma Completa">Reforma Completa</option>
@@ -2420,11 +2414,11 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="f-row" style={{marginBottom: '20px', display: 'flex', gap: '15px'}}>
-                  <div style={{flex: 1}}>
+                  <div className="u-flex-1">
                     <label className="f-label" style={{whiteSpace: 'nowrap'}}>Valor Estimado ($)</label>
                     <input type="number" className="f-inp" placeholder="Ex: 25000" value={newProjectForm.contract_value} onChange={e => setNewProjectForm({...newProjectForm, contract_value: e.target.value})} />
                   </div>
-                  <div style={{flex: 1}}>
+                  <div className="u-flex-1">
                     <label className="f-label" style={{whiteSpace: 'nowrap'}}>Prazo de Entrega</label>
                     <input type="date" className="f-inp" value={newProjectForm.deadline} onChange={e => setNewProjectForm({...newProjectForm, deadline: e.target.value})} />
                   </div>
