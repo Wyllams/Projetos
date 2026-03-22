@@ -1629,7 +1629,7 @@ export default function AdminDashboard() {
                       <label className="f-label">{t('confirmPassword')}</label>
                       <input type="password" className="f-inp" placeholder={t('repeatPassword')} />
                     </div>
-                    <button className="btn gold" onClick={() => showToast(t('passwordUpdated'))}>{t('changePassword')}</button>
+                    <div style={{display:'flex',justifyContent:'flex-end',marginTop:'4px'}}><button className="btn gold" onClick={() => showToast(t('passwordUpdated'))}>{t('changePassword')}</button></div>
                     <div style={{marginTop:'14px',paddingTop:'12px',borderTop:'1px solid var(--b)'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                         <div>
