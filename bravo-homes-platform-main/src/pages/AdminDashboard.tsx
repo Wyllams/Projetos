@@ -1697,7 +1697,21 @@ export default function AdminDashboard() {
                    {partners.map(p => (
                      <div key={p.id} onClick={() => setSelectedChatUser(p)} style={{padding: '12px 16px', borderBottom: '1px solid var(--b)', cursor: 'pointer', background: selectedChatUser?.id === p.id ? 'var(--bg3)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px'}}>
                        <div className="av" style={{background: 'var(--gold)', color: '#000', width: '32px', height: '32px', fontSize: '0.8rem', fontWeight: 'bold'}}>{(p.full_name || p.name || 'PA').substring(0,2).toUpperCase()}</div>
-                        <div>{p.full_name || p.name || 'Parceiro'}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.full_name || p.name || 'Parceiro'}</div>
+                        </div>
+                        <button title="Apagar conversa" onClick={(e) => { e.stopPropagation(); showConfirm(`Deseja apagar toda a conversa com "${p.full_name || p.name || 'este parceiro'}"? Esta ação não pode ser desfeita.`, async () => {
+                          await supabase.from('messages').delete().or(
+                            `and(sender_id.eq.${user?.id},receiver_id.eq.${p.id}),and(sender_id.eq.${p.id},receiver_id.eq.${user?.id})`
+                          );
+                          setMessages(prev => prev.filter(m =>
+                            !((m.sender_id === user?.id && m.receiver_id === p.id) ||
+                              (m.sender_id === p.id && m.receiver_id === user?.id))
+                          ));
+                          setPartners(prev => prev.filter(x => x.id !== p.id));
+                          if (selectedChatUser?.id === p.id) setSelectedChatUser(null);
+                          showToast('Conversa apagada com sucesso!');
+                        }); }} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:'0.85rem',padding:'4px',color:'var(--t3)',opacity:0.5,transition:'opacity .15s'}} onMouseEnter={e => (e.currentTarget.style.opacity = '1')} onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}>🗑️</button>
                      </div>
                    ))}
                    {partners.length === 0 && <div style={{padding: '20px', color: 'var(--t3)', fontSize: '0.85rem', textAlign: 'center'}}>Nenhum parceiro encontrado.</div>}
