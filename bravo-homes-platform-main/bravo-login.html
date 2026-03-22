@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bravo Homes Group — Login</title>
+  
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Dark Gold Premium Palette */
+      --bg-base: #050608;
+      --bg-card: #0A0D12;
+      --bg-input: #12161D;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(201, 148, 58, 0.5);
+      
+      --gold-primary: #C9943A;
+      --gold-light: #E8B55A;
+      --gold-glow: rgba(201, 148, 58, 0.15);
+      
+      --text-main: #FFFFFF;
+      --text-muted: #9A9690;
+      --text-dim: #5A5652;
+      
+      --danger: #E74C3C;
+      --success: #2ECC71;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Effects */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 15% 0%, var(--gold-glow) 0%, transparent 40%),
+        radial-gradient(circle at 85% 100%, rgba(255,255,255,0.03) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Main Container */
+    .container {
+      width: 100%;
+      max-width: 440px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Logo Area */
+    .logo-wrapper {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .logo-img {
+      width: 180px;
+      height: auto;
+      display: block;
+      margin: 0 auto 8px;
+      border-radius: 12px;
+    }
+    .logo-subtext {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* Create Account Link */
+    .create-account-row {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .create-account-row a, .create-account-row button {
+      background: none;
+      border: none;
+      color: var(--gold-light);
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      text-decoration: none;
+    }
+    .create-account-row button:hover { text-decoration: underline; }
+
+    /* Views Framework */
+    .view-container {
+      position: relative;
+      width: 100%;
+      min-height: 380px; 
+    }
+    .view {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .view.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+      position: relative;
+    }
+    .view.exit-left {
+      transform: translateX(-20px);
+      opacity: 0;
+      visibility: hidden;
+      position: absolute;
+    }
+
+    /* Profile Selection */
+    .profile-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.1rem;
+      text-align: center;
+      color: var(--text-main);
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+    .profile-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .profile-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, var(--gold-glow), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+      opacity: 0;
+    }
+    .profile-card:hover {
+      border-color: var(--border-focus);
+      background: #0D1117;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    }
+    .profile-card:hover::before {
+      transform: translateX(100%);
+      opacity: 1;
+    }
+    .pc-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--bg-input);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      border: 1px solid var(--border-light);
+      color: var(--gold-primary);
+    }
+    .pc-info h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .pc-info p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .pc-arrow {
+      margin-left: auto;
+      color: var(--text-dim);
+      transition: color 0.3s;
+    }
+    .profile-card:hover .pc-arrow {
+      color: var(--gold-light);
+      transform: translateX(4px);
+    }
+
+    /* Login Form Card */
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+    }
+    
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-bottom: 24px;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--text-main); }
+    
+    .form-header {
+      margin-bottom: 28px;
+    }
+    .form-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .form-header p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .form-control:focus {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px rgba(201,148,58,0.1);
+    }
+    .form-control::placeholder {
+      color: var(--text-dim);
+    }
+
+    .pass-wrapper {
+      position: relative;
+    }
+    .pass-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 1rem;
+    }
+    .pass-toggle:hover { color: var(--text-muted); }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      margin-bottom: 24px;
+    }
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .remember-me input {
+      accent-color: var(--gold-primary);
+      width: 14px; height: 14px;
+    }
+    .forgot-pass {
+      font-size: 0.8rem;
+      color: var(--gold-light);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .forgot-pass:hover { text-decoration: underline; }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+      color: var(--bg-base);
+      border: none;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201,148,58,0.3);
+    }
+    .btn-submit:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(5,6,8,0.3);
+      border-top-color: var(--bg-base);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Messages & Alerts */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      line-height: 1.4;
+    }
+    .alert.show { display: flex; }
+    .alert-error {
+      background: rgba(231,76,60,0.1);
+      border: 1px solid rgba(231,76,60,0.2);
+      color: var(--danger);
+    }
+    .alert-success {
+      background: rgba(46,204,113,0.1);
+      border: 1px solid rgba(46,204,113,0.2);
+      color: var(--success);
+    }
+
+    /* Demo Access */
+    .demo-section {
+      margin-top: 32px;
+      text-align: center;
+    }
+    .demo-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .demo-title::before, .demo-title::after {
+      content: '';
+      width: 40px; height: 1px;
+      background: var(--border-light);
+    }
+    .demo-badges {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .demo-badge {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .demo-badge:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .footer span { color: var(--gold-primary); }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="logo-wrapper">
+      <img src="Logo Fundo azul.jpeg" alt="Bravo Homes Group" class="logo-img">
+      <div class="logo-subtext">Plataforma de Gestão</div>
+    </div>
+
+    <!-- Interface Wrapper -->
+    <div class="view-container">
+
+      <!-- ====================== VIEW 1: PROFILE SELECTION ====================== -->
+      <div class="view active" id="view-profile">
+        <h2 class="profile-title">Selecione seu acesso</h2>
+        
+        <div class="profile-cards">
+          <!-- Parceiro -->
+          <div class="profile-card" onclick="selectProfile('parceiro')">
+            <div class="pc-icon">👷</div>
+            <div class="pc-info">
+              <h3>Sou Parceiro</h3>
+              <p>Acesse suas obras, clientes, fotos e cronograma.</p>
+            </div>
+            <div class="pc-arrow">➔</div>
+          </div>
+
+          <!-- Administrador -->
+          <div class="profile-card" onclick="selectProfile('admin')">
+            <div class="pc-icon">💼</div>
+            <div class="pc-info">
+              <h3>Sou Admin</h3>
+              <p>Gerencie leads, equipes, propostas e financeiro.</p>
+            </div>
+            <div class="pc-arrow">➔</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================== VIEW 2: LOGIN FORM ====================== -->
+      <div class="view" id="view-login">
+        <div class="login-card">
+          <button class="back-btn" onclick="backToProfiles()">
+            ← <span>Voltar</span>
+          </button>
+          
+          <div class="form-header">
+            <h2 id="form-role-title">Acesso Restrito</h2>
+            <p>Insira suas credenciais para continuar.</p>
+          </div>
+
+          <div class="alert alert-error" id="login-error">
+            ⚠ <span id="login-error-msg"></span>
+          </div>
+
+          <form id="login-form" onsubmit="handleLogin(event)">
+            <!-- Hidden field that stores which profile the user clicked initially, optional for UX handling -->
+            <input type="hidden" id="selected-role" value="parceiro">
+            
+            <div class="form-group">
+              <label for="email">E-mail</label>
+              <input type="email" id="email" class="form-control" placeholder="seu@email.com" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Senha</label>
+              <div class="pass-wrapper">
+                <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password" minlength="6">
+                <button type="button" class="pass-toggle" onclick="togglePassword()" id="btn-toggle-pass">👁</button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <label class="remember-me">
+                <input type="checkbox" id="remember"> Manter conectado
+              </label>
+              <button type="button" class="forgot-pass" onclick="alert('Funcionalidade de recuperação em breve.')">
+                Esqueci a senha
+              </button>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-login">
+              <span id="btn-login-text">Entrar na Plataforma</span>
+            </button>
+          </form>
+
+          <!-- Link criar conta -->
+          <div class="create-account-row">
+            Não tem conta? <button onclick="goToRegister()">Criar conta</button>
+          </div>
+        </div>
+        
+        <!-- Demo Accounts -->
+        <div class="demo-section">
+          <div class="demo-title">Testar como</div>
+          <div class="demo-badges">
+            <div class="demo-badge" onclick="fillDemo('admin@bravohomes.com', 'bravo2026!')">Severino (Admin)</div>
+            <div class="demo-badge" onclick="fillDemo('marcus@bravohomes.com', 'bravo2026!')">Marcus (Parceiro)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================== VIEW 3: REGISTER FORM ====================== -->
+      <div class="view" id="view-register">
+        <div class="login-card">
+          <button class="back-btn" onclick="backToLogin()">
+            ← <span>Voltar ao Login</span>
+          </button>
+
+          <div class="form-header">
+            <h2>Criar Conta</h2>
+            <p>Preencha os dados para solicitar acesso.</p>
+          </div>
+
+          <div class="alert alert-error" id="reg-error" style="display:none;">
+            ⚠ <span id="reg-error-msg"></span>
+          </div>
+          <div class="alert alert-success" id="reg-success" style="display:none;">
+            ✓ <span id="reg-success-msg"></span>
+          </div>
+
+          <form id="register-form" onsubmit="handleRegister(event)">
+            <div class="form-group">
+              <label for="reg-name">Nome completo</label>
+              <input type="text" id="reg-name" class="form-control" placeholder="Seu nome" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-email">E-mail</label>
+              <input type="email" id="reg-email" class="form-control" placeholder="seu@email.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Senha</label>
+              <div class="pass-wrapper">
+                <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="6">
+                <button type="button" class="pass-toggle" onclick="toggleRegPassword()">👁</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="reg-role">Perfil</label>
+              <select id="reg-role" class="form-control" required style="cursor:pointer;">
+                <option value="">Selecione...</option>
+                <option value="parceiro">Parceiro / Empreiteiro</option>
+                <option value="cliente">Cliente</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-register">
+              <span id="btn-register-text">Criar Conta</span>
+            </button>
+          </form>
+
+          <div class="create-account-row" style="margin-top:14px;">
+            Já tem conta? <button onclick="backToLogin()">Entrar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      Bravo Homes Group © 2026<br><span>Atlanta, Georgia</span>
+    </div>
+
+  </div>
+
+  <!-- ====================== JAVASCRIPT ====================== -->
+  <script>
+    // Configuração Supabase
+    const SUPABASE_URL = 'https://tyeaqluofishcvhvpwrg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_cGwqDIEZhMLIYzCg5oQLXg_PTlgtLRu';
+    const { createClient } = supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Initial check for active session
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Remember me fill
+      const savedEmail = localStorage.getItem('bravo_remember_email');
+      if (savedEmail) {
+        document.getElementById('email').value = savedEmail;
+        document.getElementById('remember').checked = true;
+      }
+
+      // Check current session
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          // If logged in, automatically redirect
+          await routeUser(session.user.id);
+        }
+      } catch(err) {
+        console.warn("Session check ignored", err);
+      }
+    });
+
+    // View Navigation Logic
+    function selectProfile(role) {
+      document.getElementById('selected-role').value = role;
+      document.getElementById('form-role-title').innerText = role === 'admin' ? 'Acesso Administrativo' : 'Portal do Parceiro';
+      
+      const vProfile = document.getElementById('view-profile');
+      const vLogin = document.getElementById('view-login');
+      
+      vProfile.classList.remove('active');
+      vProfile.classList.add('exit-left');
+      
+      setTimeout(() => {
+        vLogin.classList.remove('exit-left');
+        vLogin.classList.add('active');
+      }, 50);
+    }
+
+    function backToProfiles() {
+      const vProfile = document.getElementById('view-profile');
+      const vLogin = document.getElementById('view-login');
+      
+      vLogin.classList.remove('active');
+      
+      setTimeout(() => {
+        vProfile.classList.remove('exit-left');
+        vProfile.classList.add('active');
+        
+        // Hide errors when coming back
+        document.getElementById('login-error').classList.remove('show');
+        // Also hide register view if active
+        document.getElementById('view-register').classList.remove('active');
+      }, 50);
+    }
+
+    function goToRegister() {
+      const vLogin = document.getElementById('view-login');
+      const vReg = document.getElementById('view-register');
+      vLogin.classList.remove('active');
+      vLogin.classList.add('exit-left');
+      setTimeout(() => {
+        vReg.classList.remove('exit-left');
+        vReg.classList.add('active');
+        document.getElementById('reg-error').style.display = 'none';
+        document.getElementById('reg-success').style.display = 'none';
+      }, 50);
+    }
+
+    function backToLogin() {
+      const vLogin = document.getElementById('view-login');
+      const vReg = document.getElementById('view-register');
+      vReg.classList.remove('active');
+      vReg.classList.add('exit-left');
+      setTimeout(() => {
+        vLogin.classList.remove('exit-left');
+        vLogin.classList.add('active');
+      }, 50);
+    }
+
+    function toggleRegPassword() {
+      const input = document.getElementById('reg-password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const role = document.getElementById('reg-role').value;
+
+      const errBox = document.getElementById('reg-error');
+      const successBox = document.getElementById('reg-success');
+      const btn = document.getElementById('btn-register');
+      const btnText = document.getElementById('btn-register-text');
+
+      errBox.style.display = 'none';
+      successBox.style.display = 'none';
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Criando conta...';
+
+      try {
+        // 1. Create auth user
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw new Error(error.message);
+
+        const userId = data.user?.id;
+        if (userId) {
+          // 2. Insert profile into users table
+          await sb.from('users').upsert({
+            id: userId,
+            email: email,
+            name: name,
+            role: role,
+            status: 'pending'
+          });
+        }
+
+        successBox.style.display = 'flex';
+        document.getElementById('reg-success-msg').innerText =
+          'Conta criada! Verifique seu e-mail para confirmar o cadastro.';
+        document.getElementById('register-form').reset();
+      } catch(err) {
+        const errorMap = {
+          'User already registered': 'Este e-mail já está cadastrado.',
+          'Password should be at least 6 characters': 'A senha deve ter pelo menos 6 caracteres.',
+        };
+        let msg = err.message;
+        for (const [en, pt] of Object.entries(errorMap)) {
+          if (msg.includes(en)) { msg = pt; break; }
+        }
+        errBox.style.display = 'flex';
+        document.getElementById('reg-error-msg').innerText = msg;
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Criar Conta';
+      }
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const btn = document.getElementById('btn-toggle-pass');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '🙈';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '👁';
+      }
+    }
+
+    function fillDemo(email, pass) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = pass;
+      
+      // Auto-jump to login view if not there
+      if (!document.getElementById('view-login').classList.contains('active')) {
+        const inferredRole = email.includes('admin') ? 'admin' : 'parceiro';
+        selectProfile(inferredRole);
+      }
+      
+      // Submit form
+      setTimeout(() => {
+        document.getElementById('btn-login').click();
+      }, 300);
+    }
+
+    // Login Action
+    async function handleLogin(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const remember = document.getElementById('remember').checked;
+      const btn = document.getElementById('btn-login');
+      const btnText = document.getElementById('btn-login-text');
+      const errBox = document.getElementById('login-error');
+      
+      // Reset errors
+      errBox.classList.remove('show');
+      
+      // UI Loading state
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Autenticando...';
+
+      // Persist local email
+      if (remember) {
+        localStorage.setItem('bravo_remember_email', email);
+      } else {
+        localStorage.removeItem('bravo_remember_email');
+      }
+
+      // Supabase Authenticate
+      const { data, error } = await sb.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+      if (error) {
+        handleError(error.message);
+        btn.disabled = false;
+        btnText.innerHTML = 'Entrar na Plataforma';
+        return;
+      }
+
+      // Success -> Find role to redirect appropriately
+      await routeUser(data.user.id);
+    }
+
+    async function routeUser(userId) {
+      const errBox = document.getElementById('login-error');
+      try {
+        const { data: user, error } = await sb
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+        if (error || !user) throw new Error("Usuário não encontrado.");
+
+        const role = (user.role || '').toLowerCase();
+        
+        // Se a role for do DB, redirecionamos para o lugar certo
+        if (role === 'admin') {
+          window.location.href = 'bravo-admin.html';
+        } else if (role === 'partner' || role === 'parceiro') {
+          window.location.href = 'bravo-parceiro.html';
+        } else if (role === 'client' || role === 'cliente') {
+          window.location.href = 'bravo-cliente.html';
+        } else {
+          throw new Error("Perfil sem permissões.");
+        }
+      } catch(err) {
+        console.error(err);
+        handleError("Erro de permissão. Contate o administrador.");
+        sb.auth.signOut();
+        
+        document.getElementById('btn-login').disabled = false;
+        document.getElementById('btn-login-text').innerText = 'Entrar na Plataforma';
+      }
+    }
+
+    function handleError(msg) {
+      const errorMap = {
+        'Invalid login credentials': 'E-mail ou senha incorretos.',
+        'Email not confirmed': 'Por favor, confirme seu e-mail.',
+        'Too many requests': 'Muitas tentativas. Aguarde alguns minutos.'
+      };
+      
+      let translated = msg;
+      for (const [en, pt] of Object.entries(errorMap)) {
+        if (msg.includes(en)) { translated = pt; break; }
+      }
+
+      document.getElementById('login-error-msg').innerText = translated;
+      document.getElementById('login-error').classList.add('show');
+    }
+  </script>
+</body>
+</html>

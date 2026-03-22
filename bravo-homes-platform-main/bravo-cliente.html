@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bravo Homes Group — Portal do Cliente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0A0D12;--bg2:#0F1318;--bg3:#141920;--bg4:#1A2028;--b:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.12);--gold:#C9943A;--gold2:#E8B55A;--gd:rgba(201,148,58,0.12);--text:#F0EDE8;--t2:#9A9690;--t3:#5A5652;--green:#2ECC71;--red:#E74C3C;--blue:#3498DB;--orange:#E67E22}
+[data-theme="light"]{--bg:#F4F5F7;--bg2:#FFFFFF;--bg3:#ECEEF2;--bg4:#E2E5EA;--b:rgba(0,0,0,0.08);--b2:rgba(0,0,0,0.14);--gd:rgba(201,148,58,0.10);--text:#1A1D23;--t2:#5C6270;--t3:#9BA3AF}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;width:100vw}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;min-width:220px;height:100vh;background:var(--bg2);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;transition:width .3s}
+.sidebar-logo{padding:20px 18px 14px;border-bottom:1px solid var(--b)}
+.sidebar-logo .brand-img{display:block;width:140px;height:auto;border-radius:8px}
+[data-theme="light"] .sidebar-logo .brand-img{content:url('Logo atual Bravo.png')}
+.sidebar-logo .sub{font-size:10px;color:var(--t2);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+.client-card{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px}
+.client-avatar{width:36px;height:36px;border-radius:50%;background:var(--gd);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0}
+.client-info .name{font-size:12px;font-weight:600;color:var(--text)}
+.client-info .role{font-size:10px;color:var(--t2)}
+.nav-section{padding:8px 0}
+.nav-label{padding:8px 18px 4px;font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--t2);cursor:pointer;transition:all .2s;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--gold);background:var(--gd);border-left-color:var(--gold)}
+.nav-item .icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:12px 18px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:8px}
+.theme-btn,.logout-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--b);background:transparent;color:var(--t2);font-size:12px;transition:all .2s;width:100%}
+.theme-btn:hover,.logout-btn:hover{border-color:var(--b2);color:var(--text)}
+.logout-btn{color:var(--red);border-color:rgba(231,76,60,0.2)}
+.logout-btn:hover{background:rgba(231,76,60,0.08)}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{height:56px;min-height:56px;background:var(--bg2);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 24px;gap:16px}
+.topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.topbar-date{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--t2)}
+.topbar-badge{padding:4px 10px;border-radius:20px;background:var(--gd);border:1px solid rgba(201,148,58,0.3);font-size:11px;color:var(--gold);font-weight:600}
+.content{flex:1;overflow-y:auto;padding:28px 32px}
+.page{display:none}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--b);border-radius:12px;padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text)}
+.card-sub{font-size:12px;color:var(--t2)}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+
+/* ── KPI CARDS ── */
+.kpi-card{background:var(--bg2);border:1px solid var(--b);border-radius:12px;padding:18px 20px;transition:border-color .2s}
+.kpi-card:hover{border-color:var(--b2)}
+.kpi-label{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1}
+.kpi-value.gold{color:var(--gold)}
+.kpi-value.green{color:var(--green)}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{background:var(--bg3);border-radius:100px;overflow:hidden;height:8px}
+.progress-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.progress-lg{height:14px}
+.progress-xl{height:20px}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.2)}
+.badge-gold{background:var(--gd);color:var(--gold);border:1px solid rgba(201,148,58,0.3)}
+.badge-blue{background:rgba(52,152,219,0.12);color:var(--blue);border:1px solid rgba(52,152,219,0.2)}
+.badge-orange{background:rgba(230,126,34,0.12);color:var(--orange);border:1px solid rgba(230,126,34,0.2)}
+.badge-red{background:rgba(231,76,60,0.12);color:var(--red);border:1px solid rgba(231,76,60,0.2)}
+.badge-gray{background:var(--bg3);color:var(--t2);border:1px solid var(--b)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;border:none;transition:all .2s;cursor:pointer}
+.btn-gold{background:var(--gold);color:#0A0D12}
+.btn-gold:hover{background:var(--gold2)}
+.btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--t2)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-green{background:rgba(46,204,113,0.15);border:1px solid rgba(46,204,113,0.3);color:var(--green)}
+.btn-green:hover{background:rgba(46,204,113,0.25)}
+.btn-red{background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.25);color:var(--red)}
+.btn-red:hover{background:rgba(231,76,60,0.22)}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* ── SECTION TITLE ── */
+.section-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--t2);margin-bottom:22px}
+
+/* ── TABLES ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:600;color:var(--t2);text-align:left;padding:10px 14px;border-bottom:1px solid var(--b);text-transform:uppercase;letter-spacing:.05em}
+td{font-size:13px;color:var(--text);padding:13px 14px;border-bottom:1px solid var(--b)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+
+/* ── TOAST ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--bg4);border:1px solid var(--b2);border-radius:10px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideIn .3s ease;min-width:260px}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── ALERT BOX ── */
+.alert{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-radius:10px;border:1px solid rgba(201,148,58,0.25);background:var(--gd);margin-bottom:20px}
+.alert-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.alert-text{font-size:13px;color:var(--text);line-height:1.5}
+.alert-title{font-weight:600;margin-bottom:2px}
+
+/* ── ACTIVITY FEED ── */
+.feed-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--b)}
+.feed-item:last-child{border-bottom:none}
+.feed-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:5px;flex-shrink:0}
+.feed-dot.green{background:var(--green)}
+.feed-dot.blue{background:var(--blue)}
+.feed-meta{font-size:11px;color:var(--t3);margin-top:2px}
+
+/* ── STAGE TIMELINE ── */
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--b2)}
+.tl-item{position:relative;margin-bottom:28px}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{position:absolute;left:-32px;top:4px;width:22px;height:22px;border-radius:50%;border:2px solid var(--b2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;z-index:1}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.tl-dot.active{background:var(--gold);border-color:var(--gold);color:#0A0D12;animation:pulse 2s infinite}
+.tl-dot.pending{background:var(--bg3);border-color:var(--b2);color:var(--t3)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,148,58,0.4)}50%{box-shadow:0 0 0 8px rgba(201,148,58,0)}}
+.tl-content{background:var(--bg3);border:1px solid var(--b);border-radius:10px;padding:14px 16px}
+.tl-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.tl-date{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tl-note{font-size:12px;color:var(--t2);margin-top:6px;line-height:1.5}
+.tl-progress{margin-top:8px}
+
+/* ── PHOTO GALLERY ── */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.photo-card{background:var(--bg3);border:1px solid var(--b);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.photo-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,148,58,0.15)}
+.photo-emoji{font-size:36px}
+.photo-label{font-size:12px;color:var(--t2);text-align:center;padding:0 10px}
+.photo-stage-header{font-size:13px;font-weight:600;color:var(--text);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.before-after{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.ba-card{background:var(--bg3);border:1px solid var(--b);border-radius:10px;padding:16px;text-align:center}
+.ba-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.ba-label.before{color:var(--red)}
+.ba-label.after{color:var(--green)}
+.ba-img{font-size:48px;margin:8px 0}
+
+/* ── LIGHTBOX ── */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9998;display:none;align-items:center;justify-content:center;animation:fadeIn .2s}
+.lightbox.open{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.lightbox-inner{background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:32px;max-width:480px;width:90%;text-align:center;position:relative}
+.lightbox-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1}
+.lightbox-emoji{font-size:80px;margin:12px 0}
+.lightbox-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.lightbox-sub{font-size:13px;color:var(--t2);margin-top:4px}
+
+/* ── CHAT ── */
+.chat-wrap{display:flex;height:calc(100vh - 56px - 80px);min-height:400px;border:1px solid var(--b);border-radius:12px;overflow:hidden}
+.chat-list{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--b);display:flex;flex-direction:column}
+.chat-list-header{padding:14px 16px;border-bottom:1px solid var(--b);font-size:13px;font-weight:600;color:var(--text)}
+.chat-contact{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--b);transition:background .15s}
+.chat-contact:hover{background:var(--bg3)}
+.chat-contact.active{background:var(--gd)}
+.chat-contact-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0;border:1.5px solid var(--b2)}
+.chat-contact-name{font-size:13px;font-weight:600;color:var(--text)}
+.chat-contact-last{font-size:11px;color:var(--t2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.chat-contact-time{font-size:10px;color:var(--t3);margin-left:auto;flex-shrink:0;font-family:'DM Mono',monospace}
+.chat-main{flex:1;display:flex;flex-direction:column;background:var(--bg3);min-width:0}
+.chat-header{padding:12px 18px;background:var(--bg2);border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px}
+.chat-header-name{font-size:14px;font-weight:600;color:var(--text)}
+.chat-header-status{font-size:11px;color:var(--green)}
+.chat-messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;flex-direction:column;max-width:72%}
+.msg.from-me{align-self:flex-end;align-items:flex-end}
+.msg.from-them{align-self:flex-start;align-items:flex-start}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+.msg.from-me .msg-bubble{background:var(--gold);color:#0A0D12;border-bottom-right-radius:4px}
+.msg.from-them .msg-bubble{background:var(--bg4);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--b)}
+.msg-time{font-size:10px;color:var(--t3);margin-top:3px;font-family:'DM Mono',monospace}
+.chat-input-wrap{padding:12px 16px;background:var(--bg2);border-top:1px solid var(--b);display:flex;gap:10px;align-items:flex-end}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);resize:none;min-height:40px;max-height:100px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.chat-input:focus{border-color:var(--gold)}
+.chat-send{background:var(--gold);border:none;color:#0A0D12;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;flex-shrink:0}
+.chat-send:hover{background:var(--gold2)}
+
+/* ── APPROVAL CARDS ── */
+.approval-card{background:var(--bg2);border:1px solid var(--b);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:border-color .2s}
+.approval-card.approved{border-left:3px solid var(--green);opacity:.8}
+.approval-card.rejected{border-left:3px solid var(--red);opacity:.8}
+.approval-card.pending{border-left:3px solid var(--orange)}
+.approval-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.approval-amount{font-family:'DM Mono',monospace;font-size:14px;color:var(--gold);font-weight:500}
+.approval-desc{font-size:13px;color:var(--t2);margin-bottom:12px;line-height:1.5}
+.approval-actions{display:flex;gap:8px}
+
+/* ── RATING ── */
+.nps-row{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.nps-btn{width:38px;height:38px;border-radius:8px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.nps-btn:hover{border-color:var(--gold);color:var(--gold)}
+.nps-btn.sel{background:var(--gold);border-color:var(--gold);color:#0A0D12}
+.stars-row{display:flex;gap:6px;margin:10px 0}
+.star-btn{font-size:22px;cursor:pointer;transition:transform .15s;background:none;border:none;line-height:1}
+.star-btn:hover{transform:scale(1.2)}
+.star-btn.lit{filter:none}
+.star-btn.dim{filter:grayscale(1) opacity(.4)}
+textarea.review-box{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);resize:vertical;min-height:100px;font-family:'DM Sans',sans-serif;outline:none;margin-top:8px;transition:border-color .2s}
+textarea.review-box:focus{border-color:var(--gold)}
+
+/* ── PAYMENT PROGRESS ── */
+.pay-summary{background:var(--gd);border:1px solid rgba(201,148,58,0.2);border-radius:10px;padding:16px 18px;margin-bottom:20px}
+.pay-summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pay-summary-label{font-size:13px;color:var(--t2)}
+.pay-summary-value{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--gold)}
+
+/* ── DOCS ── */
+.doc-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--bg2);border:1px solid var(--b);border-radius:10px;margin-bottom:10px;transition:border-color .2s}
+.doc-item:hover{border-color:var(--b2)}
+.doc-icon{font-size:26px;flex-shrink:0}
+.doc-name{font-size:14px;font-weight:600;color:var(--text)}
+.doc-meta{font-size:11px;color:var(--t2);margin-top:2px}
+.doc-actions{margin-left:auto;display:flex;gap:8px}
+
+/* ── PARTNER INFO CARD ── */
+.partner-card{display:flex;align-items:center;gap:14px;background:var(--bg3);border:1px solid var(--b);border-radius:12px;padding:16px 18px;margin-top:20px}
+.partner-avatar{width:48px;height:48px;border-radius:50%;background:var(--gd);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--gold);flex-shrink:0}
+.partner-name{font-size:14px;font-weight:700;color:var(--text)}
+.partner-role{font-size:12px;color:var(--t2);margin-top:2px}
+.partner-phone{font-size:12px;color:var(--gold);font-family:'DM Mono',monospace;margin-top:4px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9990;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:28px;max-width:420px;width:90%;position:relative}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.modal-body{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--t2);font-size:18px;cursor:pointer}
+
+/* ── SEPARATOR ── */
+.sep{height:1px;background:var(--b);margin:20px 0}
+
+/* ── QUICK ACTIONS ── */
+.quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){.grid-4{grid-template-columns:repeat(2,1fr)}.chat-wrap{flex-direction:column;height:auto}.chat-list{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--b)}}
+@media(max-width:680px){.content{padding:16px}.sidebar{width:200px;min-width:200px}.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="Logo Fundo azul.jpeg" alt="Bravo Homes Group" class="brand-img" id="sidebar-logo-img">
+      <div class="sub">Portal do Cliente</div>
+    </div>
+    <div class="client-card">
+      <div class="client-avatar">JF</div>
+      <div class="client-info">
+        <div class="name">Johnson Family</div>
+        <div class="role">Cliente</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" onclick="nav('page-dashboard',this)" id="nav-page-dashboard">
+        <span class="icon">◈</span> Dashboard
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Minha Obra</div>
+      <div class="nav-item" onclick="nav('page-progress',this)" id="nav-page-progress">
+        <span class="icon">▦</span> Progresso da Obra
+      </div>
+      <div class="nav-item" onclick="nav('page-stages',this)" id="nav-page-stages">
+        <span class="icon">☑</span> Etapas
+      </div>
+      <div class="nav-item" onclick="nav('page-fotos',this)" id="nav-page-fotos">
+        <span class="icon">📷</span> Fotos
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Financeiro</div>
+      <div class="nav-item" onclick="nav('page-pagamentos',this)" id="nav-page-pagamentos">
+        <span class="icon">$</span> Pagamentos
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Comunicação</div>
+      <div class="nav-item" onclick="nav('page-chat',this)" id="nav-page-chat">
+        <span class="icon">💬</span> Chat
+      </div>
+      <div class="nav-item" onclick="nav('page-aprovacoes',this)" id="nav-page-aprovacoes">
+        <span class="icon">✓</span> Aprovações
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Documentos</div>
+      <div class="nav-item" onclick="nav('page-documentos',this)" id="nav-page-documentos">
+        <span class="icon">📄</span> Documentos
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Conta</div>
+      <div class="nav-item" onclick="nav('page-avaliacao',this)" id="nav-page-avaliacao">
+        <span class="icon">★</span> Avaliação
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="theme-btn" onclick="toggleTheme()">
+        <span id="theme-icon">☀️</span>
+        <span id="theme-label">Modo Claro</span>
+      </button>
+      <button class="logout-btn" onclick="doLogout()">
+        <span>⎋</span> Sair
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <span class="topbar-badge">Em Andamento</span>
+      <span class="topbar-date" id="top-date"></span>
+    </div>
+
+    <div class="content" id="main-content">
+
+      <!-- PAGE: DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="section-title">Bem-vindo, Johnson Family</div>
+        <div class="section-sub">Acompanhe o progresso da sua reforma em tempo real.</div>
+
+        <div class="alert">
+          <span class="alert-icon">🏗️</span>
+          <div class="alert-text">
+            <div class="alert-title">Marcus está na Etapa 4 de 8 — Revestimento em Andamento</div>
+            Piso e azulejos sendo instalados. Previsão de conclusão desta etapa: 25/Mar/2026.
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:20px">
+          <div class="kpi-card">
+            <div class="kpi-label">Progresso Total</div>
+            <div class="kpi-value gold">75%</div>
+            <div style="margin-top:8px">
+              <div class="progress-wrap"><div class="progress-fill" style="width:75%"></div></div>
+            </div>
+            <div class="kpi-sub">Em dia com o cronograma</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Etapa Atual</div>
+            <div class="kpi-value">4 <span style="font-size:16px;color:var(--t2)">/8</span></div>
+            <div class="kpi-sub" style="margin-top:6px"><span class="badge badge-gold">Revestimento</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Próximo Pagamento</div>
+            <div class="kpi-value gold">$14,550</div>
+            <div class="kpi-sub">Após vistoria mid-project</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Entrega Prevista</div>
+            <div class="kpi-value green">24/Mar</div>
+            <div class="kpi-sub">Estimativa atual</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Atividade Recente</span>
+              <span class="badge badge-gold">4 ações</span>
+            </div>
+            <div class="feed-item">
+              <div class="feed-dot green"></div>
+              <div>
+                <div style="font-size:13px;color:var(--text)">Fotos da etapa 3 enviadas pelo Marcus</div>
+                <div class="feed-meta">20/Mar · 14:32</div>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="feed-dot"></div>
+              <div>
+                <div style="font-size:13px;color:var(--text)">Etapa 3 marcada como concluída</div>
+                <div class="feed-meta">10/Mar · 09:15</div>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="feed-dot blue"></div>
+              <div>
+                <div style="font-size:13px;color:var(--text)">Nova mensagem de Marcus Rivera</div>
+                <div class="feed-meta">10/Mar · 08:50</div>
+              </div>
+            </div>
+            <div class="feed-item">
+              <div class="feed-dot"></div>
+              <div>
+                <div style="font-size:13px;color:var(--text)">Etapa 2 concluída — Hidráulica finalizada</div>
+                <div class="feed-meta">07/Mar · 16:00</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Resumo do Projeto</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;font-size:13px">
+                <span style="color:var(--t2)">Projeto</span>
+                <span style="font-weight:600">Full Kitchen Remodel</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px">
+                <span style="color:var(--t2)">Contratado</span>
+                <span style="font-weight:600">Marcus Rivera</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px">
+                <span style="color:var(--t2)">Valor Total</span>
+                <span style="font-weight:600;font-family:'DM Mono',monospace;color:var(--gold)">$48,500</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px">
+                <span style="color:var(--t2)">Início</span>
+                <span style="font-family:'DM Mono',monospace">03/Mar/2026</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:13px">
+                <span style="color:var(--t2)">Entrega</span>
+                <span style="font-family:'DM Mono',monospace;color:var(--green)">24/Mar/2026</span>
+              </div>
+              <div class="sep" style="margin:6px 0"></div>
+              <div class="progress-label">
+                <span>Pagamento</span><span style="font-weight:600">40% pago</span>
+              </div>
+              <div class="progress-wrap"><div class="progress-fill" style="width:40%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Ações Rápidas</span></div>
+          <div class="quick-actions">
+            <button class="btn btn-gold" onclick="nav('page-chat',document.getElementById('nav-page-chat'))">💬 Enviar Mensagem</button>
+            <button class="btn btn-ghost" onclick="nav('page-fotos',document.getElementById('nav-page-fotos'))">📷 Ver Fotos</button>
+            <button class="btn btn-ghost" onclick="nav('page-pagamentos',document.getElementById('nav-page-pagamentos'))">$ Pagamentos</button>
+            <button class="btn btn-ghost" onclick="nav('page-aprovacoes',document.getElementById('nav-page-aprovacoes'))">✓ Aprovações <span class="badge badge-orange" style="margin-left:4px">2</span></button>
+            <button class="btn btn-ghost" onclick="nav('page-documentos',document.getElementById('nav-page-documentos'))">📄 Documentos</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: PROGRESS -->
+      <div class="page" id="page-progress">
+        <div class="section-title">Progresso da Obra</div>
+        <div class="section-sub">Johnson Family — Full Kitchen Remodel</div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+              <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;color:var(--gold)">75%</div>
+              <div style="font-size:13px;color:var(--t2);margin-top:2px">Etapa 4 de 8 em progresso</div>
+            </div>
+            <div style="text-align:right">
+              <span class="badge badge-gold">Em Andamento</span>
+              <div style="font-size:11px;color:var(--t2);margin-top:4px">Iniciado em 03/Mar/2026</div>
+            </div>
+          </div>
+          <div class="progress-wrap progress-xl" style="margin-bottom:10px">
+            <div class="progress-fill" id="main-progress-bar" style="width:0%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3)">
+            <span>Início</span><span>Et.1</span><span>Et.2</span><span>Et.3</span><span>Et.4 ◄</span><span>Et.5</span><span>Et.6</span><span>Et.7</span><span>Fim</span>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot done">✓</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 1 — Demolição</div>
+                <span class="badge badge-green">Concluído</span>
+              </div>
+              <div class="tl-date">Concluído em 04/Mar/2026</div>
+              <div class="tl-note">Remoção completa dos armários, bancadas e revestimento antigo. Área limpa e pronta para próxima fase.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done">✓</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 2 — Instalação Hidráulica</div>
+                <span class="badge badge-green">Concluído</span>
+              </div>
+              <div class="tl-date">Concluído em 07/Mar/2026</div>
+              <div class="tl-note">Reposicionamento dos pontos de água e esgoto. Instalação de nova tubulação em PEX. Aprovado em vistoria.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot done">✓</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 3 — Instalação Elétrica</div>
+                <span class="badge badge-green">Concluído</span>
+              </div>
+              <div class="tl-date">Concluído em 10/Mar/2026</div>
+              <div class="tl-note">Novo painel elétrico, instalação de tomadas dedicadas para eletrodomésticos, iluminação sob gabinetes.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active">4</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 4 — Revestimento (Piso/Azulejo)</div>
+                <span class="badge badge-gold">Em Progresso</span>
+              </div>
+              <div class="tl-date">Iniciado em 20/Mar/2026</div>
+              <div class="tl-note">Instalação de porcelanato 60x60 no piso. Azulejo metro white nas paredes. Rejunte em andamento.</div>
+              <div class="tl-progress">
+                <div class="progress-label"><span>Progresso da etapa</span><span>65%</span></div>
+                <div class="progress-wrap"><div class="progress-fill" style="width:65%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot pending">5</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 5 — Montagem de Armários</div>
+                <span class="badge badge-gray">Pendente</span>
+              </div>
+              <div class="tl-date">Previsto para 26/Mar/2026</div>
+              <div class="tl-note">Instalação dos armários superiores e inferiores. Montagem das portas e ajuste de dobradiças.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot pending">6</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 6 — Bancadas e Pia</div>
+                <span class="badge badge-gray">Pendente</span>
+              </div>
+              <div class="tl-date">Previsto para 29/Mar/2026</div>
+              <div class="tl-note">Instalação de bancada em granito branco Dallas e pia de inox dupla 1,80m.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot pending">7</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 7 — Acabamentos e Pintura</div>
+                <span class="badge badge-gray">Pendente</span>
+              </div>
+              <div class="tl-date">Previsto para 01/Abr/2026</div>
+              <div class="tl-note">Pintura final das paredes, instalação de rodapés, acabamento das tomadas e interruptores.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot pending">8</div>
+            <div class="tl-content">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="tl-title">Etapa 8 — Vistoria Final e Entrega</div>
+                <span class="badge badge-gray">Pendente</span>
+              </div>
+              <div class="tl-date">Previsto para 05/Abr/2026</div>
+              <div class="tl-note">Inspeção final completa, limpeza pós-obra, entrega das chaves e documentação.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="partner-card">
+          <div class="partner-avatar">MR</div>
+          <div>
+            <div class="partner-name">Marcus Rivera</div>
+            <div class="partner-role">Bathroom Remodel Specialist — Contratado</div>
+            <div class="partner-phone">(770) 555-0101</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="nav('page-chat',document.getElementById('nav-page-chat'))">💬 Enviar Mensagem</button>
+        </div>
+      </div>
+
+      <!-- PAGE: STAGES -->
+      <div class="page" id="page-stages">
+        <div class="section-title">Etapas Detalhadas</div>
+        <div class="section-sub">Detalhamento completo de cada fase do projeto.</div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">ETAPA 01</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">Demolição</div>
+              </div>
+              <span class="badge badge-green">✓ Concluído</span>
+            </div>
+            <div class="grid-3" style="margin-bottom:12px;gap:10px">
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Início</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">03/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Conclusão</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">04/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Percentual</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;color:var(--green);margin-top:2px">100%</div>
+              </div>
+            </div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+            <div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.6">Remoção completa dos armários antigos, bancada original e revestimento de parede. Piso de vinil removido. Lixo descartado e área protegida para próxima fase. Sem imprevistos durante a demolição.</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">ETAPA 02</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">Instalação Hidráulica</div>
+              </div>
+              <span class="badge badge-green">✓ Concluído</span>
+            </div>
+            <div class="grid-3" style="margin-bottom:12px;gap:10px">
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Início</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">05/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Conclusão</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">07/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Percentual</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;color:var(--green);margin-top:2px">100%</div>
+              </div>
+            </div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+            <div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.6">Reposicionamento dos pontos de água quente e fria para nova planta da cozinha. Instalação de tubulação em PEX de alta durabilidade. Ponto de esgoto reposicionado para nova pia. Teste de pressão realizado e aprovado.</div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">ETAPA 03</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">Instalação Elétrica</div>
+              </div>
+              <span class="badge badge-green">✓ Concluído</span>
+            </div>
+            <div class="grid-3" style="margin-bottom:12px;gap:10px">
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Início</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">08/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Conclusão</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">10/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Percentual</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;color:var(--green);margin-top:2px">100%</div>
+              </div>
+            </div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:100%;background:var(--green)"></div></div>
+            <div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.6">Upgrade do painel elétrico de 100A para 200A. Instalação de 6 tomadas dedicadas (geladeira, microondas, lava-louças, forno elétrico, exaustor e ilha). Iluminação LED embutida e sob gabinetes. GFCI em todas as tomadas próximas à pia.</div>
+          </div>
+
+          <div class="card" style="border-left:3px solid var(--gold)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">ETAPA 04 — ATUAL</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">Revestimento (Piso/Azulejo)</div>
+              </div>
+              <span class="badge badge-gold">🔄 Em Progresso</span>
+            </div>
+            <div class="grid-3" style="margin-bottom:12px;gap:10px">
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Início</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px">20/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Previsão</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;margin-top:2px;color:var(--orange)">25/Mar/2026</div>
+              </div>
+              <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">Percentual</div>
+                <div style="font-size:13px;font-family:'DM Mono',monospace;color:var(--gold);margin-top:2px">65%</div>
+              </div>
+            </div>
+            <div class="progress-label"><span>Progresso atual</span><span>65%</span></div>
+            <div class="progress-wrap"><div class="progress-fill" style="width:65%"></div></div>
+            <div style="font-size:12px;color:var(--t2);margin-top:10px;line-height:1.6">Assentamento do porcelanato 60x60 polido no piso. Azulejo metro white 7,5x15 nas paredes. Pendente: rejunte e acabamento nos cantos. Mudança de escopo para rejunte cinza claro em análise.</div>
+          </div>
+
+          <div class="card" style="opacity:.65">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">ETAPAS 05–08</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text)">Armários, Bancadas, Acabamentos, Entrega</div>
+              </div>
+              <span class="badge badge-gray">Pendente</span>
+            </div>
+            <div style="font-size:12px;color:var(--t2);line-height:1.6">Montagem dos armários sob medida, instalação de bancadas em granito, pintura final, acabamentos e vistoria de entrega. Previsão: 26/Mar a 05/Abr/2026.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: FOTOS -->
+      <div class="page" id="page-fotos">
+        <div class="section-title">Fotos da Obra</div>
+        <div class="section-sub">Registro fotográfico por etapa.</div>
+
+        <div style="margin-bottom:24px">
+          <div class="photo-stage-header"><span class="badge badge-green">✓</span> Etapa 1 — Demolição</div>
+          <div class="photo-grid">
+            <div class="photo-card" onclick="openLightbox('🏚️','Antes da Demolição','Estado original da cozinha — armários e revestimento antigos.')">
+              <span class="photo-emoji">🏚️</span>
+              <span class="photo-label">Estado Original</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('🔨','Durante a Demolição','Remoção dos armários e bancada antiga.')">
+              <span class="photo-emoji">🔨</span>
+              <span class="photo-label">Demolição em Progresso</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('🧹','Após Demolição','Área limpa e pronta para próxima etapa.')">
+              <span class="photo-emoji">🧹</span>
+              <span class="photo-label">Área Limpa</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px">
+          <div class="photo-stage-header"><span class="badge badge-green">✓</span> Etapa 2 — Hidráulica</div>
+          <div class="photo-grid">
+            <div class="photo-card" onclick="openLightbox('🔵','Tubulação Nova','Nova tubulação PEX instalada.')">
+              <span class="photo-emoji">🔵</span>
+              <span class="photo-label">Tubulação PEX</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('💧','Pontos de Água','Pontos de água e esgoto reposicionados.')">
+              <span class="photo-emoji">💧</span>
+              <span class="photo-label">Pontos de Água</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('✅','Vistoria Hidráulica','Teste de pressão aprovado.')">
+              <span class="photo-emoji">✅</span>
+              <span class="photo-label">Aprovação Vistoria</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px">
+          <div class="photo-stage-header"><span class="badge badge-green">✓</span> Etapa 3 — Elétrica</div>
+          <div class="photo-grid">
+            <div class="photo-card" onclick="openLightbox('⚡','Novo Painel','Painel elétrico 200A instalado.')">
+              <span class="photo-emoji">⚡</span>
+              <span class="photo-label">Painel 200A</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('🔌','Tomadas Dedicadas','6 tomadas dedicadas instaladas.')">
+              <span class="photo-emoji">🔌</span>
+              <span class="photo-label">Tomadas Dedicadas</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('💡','Iluminação LED','LED embutido e sob gabinetes.')">
+              <span class="photo-emoji">💡</span>
+              <span class="photo-label">Iluminação LED</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px">
+          <div class="photo-stage-header"><span class="badge badge-gold">🔄</span> Etapa 4 — Revestimento (Em Andamento)</div>
+          <div class="photo-grid">
+            <div class="photo-card" onclick="openLightbox('🟫','Porcelanato','Assentamento do porcelanato 60x60.')">
+              <span class="photo-emoji">🟫</span>
+              <span class="photo-label">Piso Porcelanato</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('⬜','Metro White','Azulejo metro white nas paredes.')">
+              <span class="photo-emoji">⬜</span>
+              <span class="photo-label">Azulejo Metro White</span>
+            </div>
+            <div class="photo-card" onclick="openLightbox('🔲','Rejunte em Andamento','Aplicação do rejunte nas juntas.')">
+              <span class="photo-emoji">🔲</span>
+              <span class="photo-label">Rejunte (Pendente)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+        <div class="section-title" style="font-size:16px;margin-bottom:12px">Antes e Depois</div>
+        <div class="before-after">
+          <div class="ba-card">
+            <div class="ba-label before">Antes</div>
+            <div class="ba-img">🏚️</div>
+            <div style="font-size:12px;color:var(--t2)">Cozinha original com armários e revestimento antigos. Elétrica e hidráulica desatualizadas.</div>
+          </div>
+          <div class="ba-card">
+            <div class="ba-label after">Em Progresso — 75%</div>
+            <div class="ba-img">🏗️</div>
+            <div style="font-size:12px;color:var(--t2)">Reforma 75% completa. Piso e azulejos instalados. Aguardando armários e bancadas.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: PAGAMENTOS -->
+      <div class="page" id="page-pagamentos">
+        <div class="section-title">Pagamentos</div>
+        <div class="section-sub">Cronograma financeiro do projeto.</div>
+
+        <div class="pay-summary">
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">Total do Contrato</span>
+            <span class="pay-summary-value">$48,500</span>
+          </div>
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">Total Pago</span>
+            <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--green)">$19,400</span>
+          </div>
+          <div class="pay-summary-row" style="margin-bottom:0">
+            <span class="pay-summary-label">Saldo Restante</span>
+            <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--text)">$29,100</span>
+          </div>
+          <div style="margin-top:14px">
+            <div class="progress-label"><span>Pago</span><span>40% — $19,400 de $48,500</span></div>
+            <div class="progress-wrap progress-lg"><div class="progress-fill" style="width:40%"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Cronograma de Pagamentos</span>
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Relatório financeiro exportado.', true)">📊 Exportar</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="font-family:'DM Mono',monospace;color:var(--t2)">001</span></td>
+                  <td>
+                    <div style="font-weight:600">Entry Fee — Início da Obra</div>
+                    <div style="font-size:11px;color:var(--t2)">Pagamento inicial para mobilização da equipe</div>
+                  </td>
+                  <td><span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--green)">$19,400</span></td>
+                  <td><span style="font-family:'DM Mono',monospace;font-size:12px">03/Mar/2026</span></td>
+                  <td><span class="badge badge-green">✓ Pago</span></td>
+                  <td><button class="btn btn-ghost btn-sm" onclick="downloadInvoice('INV-001')">📄 Invoice</button></td>
+                </tr>
+                <tr>
+                  <td><span style="font-family:'DM Mono',monospace;color:var(--t2)">002</span></td>
+                  <td>
+                    <div style="font-weight:600">Mid-Project Payment</div>
+                    <div style="font-size:11px;color:var(--t2)">Pagamento após vistoria da metade do projeto</div>
+                  </td>
+                  <td><span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--gold)">$14,550</span></td>
+                  <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--orange)">Após vistoria</span></td>
+                  <td><span class="badge badge-orange">⏳ Pendente</span></td>
+                  <td><button class="btn btn-ghost btn-sm" onclick="downloadInvoice('INV-002')">📄 Invoice</button></td>
+                </tr>
+                <tr>
+                  <td><span style="font-family:'DM Mono',monospace;color:var(--t2)">003</span></td>
+                  <td>
+                    <div style="font-weight:600">Final Payment — Entrega</div>
+                    <div style="font-size:11px;color:var(--t2)">Pagamento final após vistoria e entrega da obra</div>
+                  </td>
+                  <td><span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--t2)">$14,550</span></td>
+                  <td><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--t2)">Após entrega</span></td>
+                  <td><span class="badge badge-gray">⏸ Futuro</span></td>
+                  <td><button class="btn btn-ghost btn-sm" onclick="downloadInvoice('INV-003')">📄 Invoice</button></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr style="background:var(--bg3)">
+                  <td colspan="2" style="font-weight:700;font-size:14px">Total</td>
+                  <td><span style="font-family:'DM Mono',monospace;font-weight:800;font-size:16px;color:var(--gold)">$48,500</span></td>
+                  <td colspan="3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><span class="card-title">Informações de Pagamento</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <span style="color:var(--gold);font-size:16px">ℹ</span>
+              <span style="color:var(--t2);line-height:1.5">Pagamentos são processados via Bravo Homes Group. Após confirmação de cada etapa pelo parceiro, você receberá notificação para aprovação do pagamento.</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <span style="color:var(--green);font-size:16px">🔒</span>
+              <span style="color:var(--t2);line-height:1.5">Todos os pagamentos são protegidos por contrato. Em caso de dúvidas, entre em contato com Bravo Homes Group.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: CHAT -->
+      <div class="page" id="page-chat">
+        <div class="section-title" style="margin-bottom:16px">Chat</div>
+        <div class="chat-wrap">
+          <div class="chat-list">
+            <div class="chat-list-header">Conversas</div>
+            <div class="chat-contact active" id="contact-marcus" onclick="switchChat('marcus')">
+              <div class="chat-contact-avatar">MR</div>
+              <div style="flex:1;min-width:0">
+                <div class="chat-contact-name">Marcus Rivera</div>
+                <div class="chat-contact-last">Contratado</div>
+              </div>
+              <div class="chat-contact-time">Agora</div>
+            </div>
+            <div class="chat-contact" id="contact-bravo" onclick="switchChat('bravo')">
+              <div class="chat-contact-avatar" style="background:var(--gd);color:var(--gold)">BH</div>
+              <div style="flex:1;min-width:0">
+                <div class="chat-contact-name">Bravo Homes</div>
+                <div class="chat-contact-last">Suporte Admin</div>
+              </div>
+              <div class="chat-contact-time">Ontem</div>
+            </div>
+          </div>
+          <div class="chat-main">
+            <div class="chat-header">
+              <div id="chat-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0;border:1.5px solid var(--b2)">MR</div>
+              <div>
+                <div class="chat-header-name" id="chat-name">Marcus Rivera</div>
+                <div class="chat-header-status" id="chat-status">● Online</div>
+              </div>
+            </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-wrap">
+              <textarea class="chat-input" id="chat-input" placeholder="Escreva sua mensagem..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendClientMsg()}"></textarea>
+              <button class="chat-send" onclick="sendClientMsg()">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: APROVACOES -->
+      <div class="page" id="page-aprovacoes">
+        <div class="section-title">Aprovações</div>
+        <div class="section-sub">Mudanças de escopo que requerem sua aprovação.</div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+          <span class="badge badge-orange">2 pendentes</span>
+          <span class="badge badge-green">1 aprovado</span>
+        </div>
+
+        <div class="approval-card pending" id="approval-1">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">SOL-001 · 18/Mar/2026</div>
+              <div class="approval-title">Alteração de Rejunte — Cinza Claro ao invés de Branco</div>
+            </div>
+            <span class="badge badge-orange">⏳ Pendente</span>
+          </div>
+          <div class="approval-desc">Marcus solicitou alteração no material de rejunte. O rejunte branco original será substituído por rejunte cinza claro, que harmoniza melhor com o porcelanato escolhido. Diferença de custo inclui material e mão de obra adicional.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;color:var(--t2)">Custo adicional:</div>
+            <div class="approval-amount">+ $200</div>
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-green" onclick="approveChange(1)">✓ Aprovar +$200</button>
+            <button class="btn btn-red" onclick="rejectChange(1)">✗ Recusar</button>
+            <button class="btn btn-ghost btn-sm" onclick="showApprovalModal(1)">Ver Detalhes</button>
+          </div>
+        </div>
+
+        <div class="approval-card pending" id="approval-2">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">SOL-002 · 19/Mar/2026</div>
+              <div class="approval-title">Upgrade de Gabinete — Madeira Premium ao invés de MDF</div>
+            </div>
+            <span class="badge badge-orange">⏳ Pendente</span>
+          </div>
+          <div class="approval-desc">Oportunidade de upgrade nos armários para madeira sólida premium (cerejeira) ao invés do MDF planejado. O material oferece maior durabilidade e valor agregado ao imóvel. Inclui substituição de todas as faces e frontais dos gabinetes.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;color:var(--t2)">Custo adicional:</div>
+            <div class="approval-amount">+ $1,800</div>
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-green" onclick="approveChange(2)">✓ Aprovar +$1,800</button>
+            <button class="btn btn-red" onclick="rejectChange(2)">✗ Recusar</button>
+            <button class="btn btn-ghost btn-sm" onclick="showApprovalModal(2)">Ver Detalhes</button>
+          </div>
+        </div>
+
+        <div class="approval-card approved" id="approval-0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:3px">SOL-000 · 05/Mar/2026</div>
+              <div class="approval-title">Adição de Tomada USB — Parede da Ilha</div>
+            </div>
+            <span class="badge badge-green">✓ Aprovado</span>
+          </div>
+          <div class="approval-desc">Instalação de tomada dupla com carregador USB-A e USB-C integrado na parede da ilha central. Aprovado pelo cliente Johnson Family em 05/Mar.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;color:var(--t2)">Custo adicional:</div>
+            <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--green)">+ $150 ✓ Aprovado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: DOCUMENTOS -->
+      <div class="page" id="page-documentos">
+        <div class="section-title">Documentos</div>
+        <div class="section-sub">Contratos, orçamentos e faturas do seu projeto.</div>
+
+        <div class="doc-item">
+          <span class="doc-icon">📋</span>
+          <div>
+            <div class="doc-name">Contrato de Prestação de Serviços</div>
+            <div class="doc-meta">PDF · 2.4 MB · Assinado em 01/Mar/2026</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo contrato...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Download: Contrato_JohnsonFamily.pdf', true)">⬇ Download</button>
+          </div>
+        </div>
+
+        <div class="doc-item">
+          <span class="doc-icon">📊</span>
+          <div>
+            <div class="doc-name">Orçamento Aprovado — Full Kitchen Remodel</div>
+            <div class="doc-meta">PDF · 1.1 MB · Gerado em 28/Fev/2026</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo orçamento...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Download: Orcamento_JohnsonFamily.pdf', true)">⬇ Download</button>
+          </div>
+        </div>
+
+        <div class="doc-item">
+          <span class="doc-icon">🧾</span>
+          <div>
+            <div class="doc-name">Fatura #INV-001 — Entry Fee $19,400</div>
+            <div class="doc-meta">PDF · 0.8 MB · Emitida em 03/Mar/2026 · Paga</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo fatura...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="downloadInvoice('INV-001')">⬇ Download</button>
+          </div>
+        </div>
+
+        <div class="doc-item">
+          <span class="doc-icon">📝</span>
+          <div>
+            <div class="doc-name">Escopo de Trabalho Detalhado</div>
+            <div class="doc-meta">PDF · 3.2 MB · Aprovado em 01/Mar/2026</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo escopo...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Download: Escopo_JohnsonFamily.pdf', true)">⬇ Download</button>
+          </div>
+        </div>
+
+        <div class="doc-item">
+          <span class="doc-icon">🔐</span>
+          <div>
+            <div class="doc-name">Apólice de Seguro da Obra</div>
+            <div class="doc-meta">PDF · 1.5 MB · Válida até 30/Abr/2026</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo apólice...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Download: Apolice_BravoHomes.pdf', true)">⬇ Download</button>
+          </div>
+        </div>
+
+        <div class="doc-item">
+          <span class="doc-icon">📑</span>
+          <div>
+            <div class="doc-name">Termo de Mudança de Escopo — SOL-000</div>
+            <div class="doc-meta">PDF · 0.4 MB · Assinado em 05/Mar/2026</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-ghost btn-sm" onclick="showToast('Abrindo termo...', true)">👁 Visualizar</button>
+            <button class="btn btn-gold btn-sm" onclick="showToast('Download: Termo_SOL000.pdf', true)">⬇ Download</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: AVALIACAO -->
+      <div class="page" id="page-avaliacao">
+        <div class="section-title">Avaliação da Experiência</div>
+        <div class="section-sub">Sua opinião é fundamental para melhorarmos nossos serviços.</div>
+
+        <div id="rating-display" style="display:none" class="alert">
+          <span class="alert-icon">⭐</span>
+          <div class="alert-text">
+            <div class="alert-title">Você já enviou uma avaliação!</div>
+            <div id="prev-rating-text">Carregando...</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:20px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">NPS — Recomendaria a Bravo Homes?</span></div>
+            <div style="font-size:13px;color:var(--t2);margin-bottom:8px">Em uma escala de 0 a 10, qual a probabilidade de recomendar nossos serviços?</div>
+            <div class="nps-row" id="nps-row">
+              <button class="nps-btn" onclick="setNPS(0)">0</button>
+              <button class="nps-btn" onclick="setNPS(1)">1</button>
+              <button class="nps-btn" onclick="setNPS(2)">2</button>
+              <button class="nps-btn" onclick="setNPS(3)">3</button>
+              <button class="nps-btn" onclick="setNPS(4)">4</button>
+              <button class="nps-btn" onclick="setNPS(5)">5</button>
+              <button class="nps-btn" onclick="setNPS(6)">6</button>
+              <button class="nps-btn" onclick="setNPS(7)">7</button>
+              <button class="nps-btn" onclick="setNPS(8)">8</button>
+              <button class="nps-btn" onclick="setNPS(9)">9</button>
+              <button class="nps-btn" onclick="setNPS(10)">10</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:4px">
+              <span>Definitivamente não</span><span>Definitivamente sim</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Avaliação por Categoria</span></div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Qualidade do Trabalho</div>
+                <div class="stars-row" id="stars-quality">
+                  <button class="star-btn dim" onclick="setRating('quality',1)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('quality',2)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('quality',3)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('quality',4)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('quality',5)">⭐</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Cumprimento do Prazo</div>
+                <div class="stars-row" id="stars-timeline">
+                  <button class="star-btn dim" onclick="setRating('timeline',1)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('timeline',2)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('timeline',3)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('timeline',4)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('timeline',5)">⭐</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Comunicação</div>
+                <div class="stars-row" id="stars-communication">
+                  <button class="star-btn dim" onclick="setRating('communication',1)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('communication',2)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('communication',3)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('communication',4)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('communication',5)">⭐</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Custo-Benefício</div>
+                <div class="stars-row" id="stars-value">
+                  <button class="star-btn dim" onclick="setRating('value',1)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('value',2)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('value',3)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('value',4)">⭐</button>
+                  <button class="star-btn dim" onclick="setRating('value',5)">⭐</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><span class="card-title">Comentário / Depoimento</span></div>
+          <textarea class="review-box" id="review-text" placeholder="Descreva sua experiência com a Bravo Homes Group e com o Marcus Rivera. Seu depoimento pode ajudar outros clientes a fazer a escolha certa..."></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:10px">
+            <button class="btn btn-ghost" onclick="clearRating()">Limpar</button>
+            <button class="btn btn-gold" onclick="submitRating()">⭐ Enviar Avaliação</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+  </div><!-- end main -->
+</div><!-- end app -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">✕</button>
+    <div class="lightbox-emoji" id="lb-emoji">📷</div>
+    <div class="lightbox-title" id="lb-title">Foto</div>
+    <div class="lightbox-sub" id="lb-sub">Descrição da foto</div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-ghost btn-sm" onclick="showToast('Download simulado.',true)">⬇ Download</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lightbox').classList.remove('open')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVAL MODAL -->
+<div class="modal-overlay" id="approval-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('approval-modal').classList.remove('open')">✕</button>
+    <div class="modal-title" id="modal-title">Detalhes da Solicitação</div>
+    <div class="modal-body" id="modal-body">Carregando detalhes...</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('approval-modal').classList.remove('open')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE INIT ──
+const SUPABASE_URL = 'https://tyeaqluofishcvhvpwrg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cGwqDIEZhMLIYzCg5oQLXg_PTlgtLRu';
+let sbClient = null;
+let demoMode = false;
+
+try {
+  sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.warn('Supabase init failed, running in demo mode:', e);
+  demoMode = true;
+}
+
+// ── AUTH GUARD ──
+async function checkAuth() {
+  if (demoMode) return;
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) {
+      demoMode = true;
+      console.log('No active session — running in demo mode');
+    }
+  } catch(e) {
+    demoMode = true;
+    console.warn('Auth check failed, demo mode:', e);
+  }
+}
+
+// ── NAVIGATION ──
+const pageTitles = {
+  'page-dashboard': 'Dashboard',
+  'page-progress': 'Progresso da Obra',
+  'page-stages': 'Etapas',
+  'page-fotos': 'Fotos',
+  'page-pagamentos': 'Pagamentos',
+  'page-chat': 'Chat',
+  'page-aprovacoes': 'Aprovações',
+  'page-documentos': 'Documentos',
+  'page-avaliacao': 'Avaliação'
+};
+
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var page = document.getElementById(id);
+  if (page) page.classList.add('active');
+  if (el) el.classList.add('active');
+  var titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = pageTitles[id] || id;
+  var content = document.getElementById('main-content');
+  if (content) content.scrollTop = 0;
+  if (id === 'page-chat') { setTimeout(renderChatMsgs, 100); }
+  if (id === 'page-avaliacao') { loadPreviousRating(); }
+  if (id === 'page-progress') {
+    setTimeout(function() {
+      var bar = document.getElementById('main-progress-bar');
+      if (bar) bar.style.width = '75%';
+    }, 200);
+  }
+}
+
+// ── TOAST ──
+var _toastTimers = {};
+
+function showToast(msg, ok) {
+  if (ok === undefined) ok = true;
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+  var id = 'toast-' + Date.now();
+  var div = document.createElement('div');
+  div.className = 'toast ' + (ok ? 'ok' : 'err');
+  div.id = id;
+  div.innerHTML = '<span>' + (ok ? '✓' : '✗') + '</span><span>' + msg + '</span>';
+  container.appendChild(div);
+  _toastTimers[id] = setTimeout(function() {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+    delete _toastTimers[id];
+  }, 3500);
+}
+
+// ── THEME ──
+function toggleTheme() {
+  var html = document.documentElement;
+  var isDark = html.getAttribute('data-theme') === 'dark';
+  var newTheme = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('bravo_theme', newTheme);
+  var icon = document.getElementById('theme-icon');
+  var label = document.getElementById('theme-label');
+  if (icon) icon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+  if (label) label.textContent = newTheme === 'dark' ? 'Modo Claro' : 'Modo Escuro';
+  // Troca logo conforme tema
+  var logoImg = document.getElementById('sidebar-logo-img');
+  if (logoImg) logoImg.src = newTheme === 'dark' ? 'Logo Fundo azul.jpeg' : 'Logo atual Bravo.png';
+  showToast('Tema alterado para ' + (newTheme === 'dark' ? 'escuro' : 'claro'), true);
+}
+
+function initTheme() {
+  var saved = localStorage.getItem('bravo_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  var icon = document.getElementById('theme-icon');
+  var label = document.getElementById('theme-label');
+  if (icon) icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+  if (label) label.textContent = saved === 'dark' ? 'Modo Claro' : 'Modo Escuro';
+  // Inicializa logo conforme tema salvo
+  var logoImg = document.getElementById('sidebar-logo-img');
+  if (logoImg) logoImg.src = saved === 'dark' ? 'Logo Fundo azul.jpeg' : 'Logo atual Bravo.png';
+}
+
+// ── LOGOUT ──
+async function doLogout() {
+  try {
+    if (sbClient && !demoMode) await sbClient.auth.signOut();
+  } catch(e) {}
+  showToast('Sessão encerrada. Redirecionando...', true);
+  setTimeout(function() {
+    window.location.href = 'bravo-login.html';
+  }, 1500);
+}
+
+// ── TOPBAR DATE ──
+function updateDate() {
+  var now = new Date();
+  var opts = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+  var el = document.getElementById('top-date');
+  if (el) el.textContent = now.toLocaleDateString('pt-BR', opts);
+}
+
+// ── CHAT ──
+var currentChat = 'marcus';
+
+var defaultMessages = {
+  marcus: [
+    { from: 'parceiro', text: 'Olá, Johnson Family! Começamos a instalação do porcelanato hoje cedo. Está ficando excelente!', time: '20/Mar 08:30' },
+    { from: 'cliente', text: 'Que ótima notícia, Marcus! Quando podemos visitar a obra?', time: '20/Mar 09:15' },
+    { from: 'parceiro', text: 'Pode vir amanhã entre 14h e 17h. Vou mostrar o progresso pessoalmente.', time: '20/Mar 09:22' },
+    { from: 'cliente', text: 'Perfeito! Estaremos lá amanhã às 14h30. Obrigado!', time: '20/Mar 09:35' },
+    { from: 'parceiro', text: 'Enviei fotos das últimas etapas pelo portal. Deem uma olhada!', time: '20/Mar 14:00' }
+  ],
+  bravo: [
+    { from: 'parceiro', text: 'Bem-vindos ao Portal do Cliente Bravo Homes Group! Estamos aqui para qualquer dúvida.', time: '01/Mar 10:00' },
+    { from: 'cliente', text: 'Obrigado pelo suporte. O portal está muito intuitivo!', time: '01/Mar 11:30' },
+    { from: 'parceiro', text: 'Fico feliz! Qualquer problema, pode falar conosco aqui mesmo.', time: '01/Mar 11:45' },
+    { from: 'parceiro', text: 'Lembrete: Você tem 2 solicitações de mudança de escopo para aprovar.', time: '19/Mar 16:00' }
+  ]
+};
+
+function getChatKey(who) {
+  return 'bravo_chat_cliente_' + who;
+}
+
+function initChatStorage() {
+  Object.keys(defaultMessages).forEach(function(who) {
+    var key = getChatKey(who);
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, JSON.stringify(defaultMessages[who]));
+    }
+  });
+}
+
+function switchChat(who) {
+  currentChat = who;
+  document.querySelectorAll('.chat-contact').forEach(function(c) { c.classList.remove('active'); });
+  var contactEl = document.getElementById('contact-' + who);
+  if (contactEl) contactEl.classList.add('active');
+  var names = { marcus: 'Marcus Rivera', bravo: 'Bravo Homes Admin' };
+  var avatars = { marcus: 'MR', bravo: 'BH' };
+  var statuses = { marcus: '● Online', bravo: '● Suporte disponível' };
+  var nameEl = document.getElementById('chat-name');
+  var avatarEl = document.getElementById('chat-avatar');
+  var statusEl = document.getElementById('chat-status');
+  if (nameEl) nameEl.textContent = names[who] || who;
+  if (avatarEl) avatarEl.textContent = avatars[who] || who.substring(0, 2).toUpperCase();
+  if (statusEl) statusEl.textContent = statuses[who] || '● Online';
+  renderChatMsgs();
+}
+
+function renderChatMsgs() {
+  var container = document.getElementById('chat-messages');
+  if (!container) return;
+  var key = getChatKey(currentChat);
+  var msgs = [];
+  try { msgs = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { msgs = []; }
+  // Also check shared key for partner messages
+  try {
+    var shared = JSON.parse(localStorage.getItem('bravo_chat_cliente') || '[]');
+    shared.forEach(function(m) {
+      if (m.from === 'parceiro' && (m.to === currentChat || !m.to)) {
+        msgs.push(m);
+      }
+    });
+  } catch(e) {}
+  container.innerHTML = '';
+  if (!msgs.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--t3);font-size:13px;padding:32px">Nenhuma mensagem ainda.</div>';
+    return;
+  }
+  msgs.forEach(function(m) {
+    var isMe = m.from === 'cliente';
+    var div = document.createElement('div');
+    div.className = 'msg ' + (isMe ? 'from-me' : 'from-them');
+    div.innerHTML = '<div class="msg-bubble">' + escHtml(m.text) + '</div><div class="msg-time">' + (m.time || '') + '</div>';
+    container.appendChild(div);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendClientMsg() {
+  var input = document.getElementById('chat-input');
+  if (!input) return;
+  var text = input.value.trim();
+  if (!text) return;
+  var key = getChatKey(currentChat);
+  var msgs = [];
+  try { msgs = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { msgs = []; }
+  var now = new Date();
+  var time = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  msgs.push({ from: 'cliente', text: text, time: time });
+  localStorage.setItem(key, JSON.stringify(msgs));
+  // Write to shared key for partner to read
+  var shared = [];
+  try { shared = JSON.parse(localStorage.getItem('bravo_chat_cliente') || '[]'); } catch(e) {}
+  shared.push({ from: 'cliente', to: currentChat, text: text, time: time });
+  localStorage.setItem('bravo_chat_cliente', JSON.stringify(shared));
+  input.value = '';
+  renderChatMsgs();
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── PAYMENTS ──
+function downloadInvoice(id) {
+  showToast('Download iniciado: ' + id + '.pdf', true);
+}
+
+// ── APPROVALS ──
+var approvalData = {
+  1: {
+    title: 'Rejunte Cinza Claro',
+    amount: 200,
+    desc: 'Substituição do rejunte branco padrão por rejunte cinza claro. Harmoniza com o porcelanato escolhido. Material: Mapei Ultracolor Plus FA Cinza Claro. Inclui mão de obra para reaplicação nas áreas de piso e azulejo da cozinha.'
+  },
+  2: {
+    title: 'Gabinete Madeira Premium',
+    amount: 1800,
+    desc: 'Upgrade dos frontais e faces dos gabinetes de MDF planejado para madeira sólida cerejeira. Inclui verniz acetinado, novas dobradiças Blum e todos os 18 módulos de armário (superiores e inferiores). Aumenta durabilidade e valor do imóvel.'
+  }
+};
+
+function approveChange(id) {
+  var card = document.getElementById('approval-' + id);
+  if (!card) return;
+  card.className = 'approval-card approved';
+  var actions = card.querySelector('.approval-actions');
+  if (actions) {
+    actions.innerHTML = '<span class="badge badge-green" style="font-size:13px;padding:8px 14px">✓ Aprovado — Assinado digitalmente</span>';
+  }
+  var badge = card.querySelector('.badge-orange');
+  if (badge) { badge.className = 'badge badge-green'; badge.textContent = '✓ Aprovado'; }
+  var d = approvalData[id];
+  showToast((d ? d.title : 'Mudança') + ' aprovada! Parceiro notificado.', true);
+  var key = 'bravo_aprovacoes_johnson';
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  saved.push({ id: id, status: 'approved', date: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(saved));
+}
+
+function rejectChange(id) {
+  var card = document.getElementById('approval-' + id);
+  if (!card) return;
+  card.className = 'approval-card rejected';
+  var actions = card.querySelector('.approval-actions');
+  if (actions) {
+    actions.innerHTML = '<span class="badge badge-red" style="font-size:13px;padding:8px 14px">✗ Recusado</span>';
+  }
+  var badge = card.querySelector('.badge-orange');
+  if (badge) { badge.className = 'badge badge-red'; badge.textContent = '✗ Recusado'; }
+  var d = approvalData[id];
+  showToast((d ? d.title : 'Mudança') + ' recusada. Parceiro notificado.', false);
+  var key = 'bravo_aprovacoes_johnson';
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  saved.push({ id: id, status: 'rejected', date: new Date().toISOString() });
+  localStorage.setItem(key, JSON.stringify(saved));
+}
+
+function showApprovalModal(id) {
+  var d = approvalData[id];
+  if (!d) return;
+  var titleEl = document.getElementById('modal-title');
+  var bodyEl = document.getElementById('modal-body');
+  if (titleEl) titleEl.textContent = 'Detalhes — ' + d.title;
+  if (bodyEl) bodyEl.innerHTML = '<p style="margin-bottom:12px">' + d.desc + '</p><div style="display:flex;justify-content:space-between;background:var(--bg3);padding:10px 14px;border-radius:8px"><span>Custo adicional</span><strong style="font-family:\'DM Mono\',monospace;color:var(--gold)">+$' + d.amount.toLocaleString() + '</strong></div>';
+  var modal = document.getElementById('approval-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeModal(e) {
+  var overlay = document.getElementById('approval-modal');
+  if (e.target === overlay) overlay.classList.remove('open');
+}
+
+// ── RATING ──
+var ratings = { quality: 0, timeline: 0, communication: 0, value: 0 };
+var npsScore = -1;
+
+function setNPS(n) {
+  npsScore = n;
+  document.querySelectorAll('.nps-btn').forEach(function(btn, i) {
+    btn.classList.toggle('sel', i === n);
+  });
+}
+
+function setRating(cat, val) {
+  ratings[cat] = val;
+  var row = document.getElementById('stars-' + cat);
+  if (!row) return;
+  row.querySelectorAll('.star-btn').forEach(function(btn, i) {
+    btn.classList.toggle('lit', i < val);
+    btn.classList.toggle('dim', i >= val);
+  });
+}
+
+function clearRating() {
+  npsScore = -1;
+  Object.keys(ratings).forEach(function(k) { ratings[k] = 0; });
+  document.querySelectorAll('.nps-btn').forEach(function(b) { b.classList.remove('sel'); });
+  ['quality', 'timeline', 'communication', 'value'].forEach(function(cat) {
+    document.querySelectorAll('#stars-' + cat + ' .star-btn').forEach(function(b) {
+      b.classList.remove('lit'); b.classList.add('dim');
+    });
+  });
+  var ta = document.getElementById('review-text');
+  if (ta) ta.value = '';
+}
+
+function submitRating() {
+  var text = document.getElementById('review-text') ? document.getElementById('review-text').value : '';
+  var data = {
+    nps: npsScore,
+    ratings: Object.assign({}, ratings),
+    review: text,
+    date: new Date().toISOString(),
+    client: 'Johnson Family'
+  };
+  localStorage.setItem('bravo_nps_johnson', JSON.stringify(data));
+  showToast('Avaliação enviada com sucesso! Obrigado.', true);
+  var display = document.getElementById('rating-display');
+  var prevText = document.getElementById('prev-rating-text');
+  if (display) display.style.display = 'flex';
+  if (prevText) prevText.textContent = 'NPS: ' + (npsScore >= 0 ? npsScore : 'N/A') + ' | Qualidade: ' + ratings.quality + '★ | Prazo: ' + ratings.timeline + '★ | Comunicação: ' + ratings.communication + '★ | Custo-Benefício: ' + ratings.value + '★';
+}
+
+function loadPreviousRating() {
+  var saved = localStorage.getItem('bravo_nps_johnson');
+  var display = document.getElementById('rating-display');
+  if (!saved) { if (display) display.style.display = 'none'; return; }
+  try {
+    var d = JSON.parse(saved);
+    if (display) display.style.display = 'flex';
+    var prevText = document.getElementById('prev-rating-text');
+    if (prevText) prevText.textContent = 'NPS: ' + (d.nps >= 0 ? d.nps : 'N/A') + ' | Qualidade: ' + (d.ratings && d.ratings.quality || 0) + '★ | Prazo: ' + (d.ratings && d.ratings.timeline || 0) + '★ | Comunicação: ' + (d.ratings && d.ratings.communication || 0) + '★ | Custo-Benefício: ' + (d.ratings && d.ratings.value || 0) + '★';
+    if (d.nps >= 0) setNPS(d.nps);
+    if (d.ratings) Object.keys(d.ratings).forEach(function(k) { setRating(k, d.ratings[k]); });
+    if (d.review) { var ta = document.getElementById('review-text'); if (ta) ta.value = d.review; }
+  } catch(e) {}
+}
+
+// ── LIGHTBOX ──
+function openLightbox(emoji, title, sub) {
+  var lb = document.getElementById('lightbox');
+  var lbEmoji = document.getElementById('lb-emoji');
+  var lbTitle = document.getElementById('lb-title');
+  var lbSub = document.getElementById('lb-sub');
+  if (lbEmoji) lbEmoji.textContent = emoji;
+  if (lbTitle) lbTitle.textContent = title;
+  if (lbSub) lbSub.textContent = sub;
+  if (lb) lb.classList.add('open');
+}
+
+function closeLightbox(e) {
+  var lb = document.getElementById('lightbox');
+  if (e.target === lb) lb.classList.remove('open');
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', function() {
+  initTheme();
+  updateDate();
+  setInterval(updateDate, 60000);
+  initChatStorage();
+  checkAuth();
+  // Animate progress bars
+  setTimeout(function() {
+    document.querySelectorAll('.progress-fill').forEach(function(bar) {
+      var w = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(function() { bar.style.width = w; }, 100);
+    });
+  }, 300);
+});
+</script>
+</body>
+</html>

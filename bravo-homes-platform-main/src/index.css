@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+/* Make all interactive elements show the hand cursor */
+button, a, select, input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], [role="button"], .card, .profile-card, li[onClick], div[onClick] {
+  cursor: pointer !important;
+}

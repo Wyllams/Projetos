@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bravo — Portal do Parceiro</title>
+<!-- BUG FIX #10: Google Fonts — DM Mono, DM Sans, Syne + Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<!-- BUG FIX #1: Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0A0D12;--bg2:#0F1318;--bg3:#141920;--bg4:#1A2028;--b:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.12);--gold:#C9943A;--gold2:#E8B55A;--gd:rgba(201,148,58,0.12);--text:#F0EDE8;--t2:#9A9690;--t3:#5A5652;--green:#2ECC71;--red:#E74C3C;--blue:#3498DB;--orange:#E67E22}
+[data-theme="light"]{--bg:#F4F5F7;--bg2:#FFFFFF;--bg3:#ECEEF2;--bg4:#E2E5EA;--b:rgba(0,0,0,0.08);--b2:rgba(0,0,0,0.14);--gd:rgba(201,148,58,0.10);--text:#1A1D23;--t2:#5C6270;--t3:#9BA3AF}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+/* SIDEBAR */
+.sb{width:220px;background:var(--bg2);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:20px 16px 14px;border-bottom:1px solid var(--b)}
+.sb-logo{display:block;width:130px;height:auto;border-radius:8px}
+.sb-sub{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+.sb-partner{margin:10px 10px 0;background:var(--gd);border:1px solid rgba(201,148,58,0.2);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.av{width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:0.72rem;color:var(--bg);flex-shrink:0}
+.pname{font-size:0.78rem;font-weight:600}
+.prole{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px}
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto}
+.sb-sec{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--t3);letter-spacing:2px;text-transform:uppercase;padding:12px 8px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:all .15s;color:var(--t2);font-size:0.82rem;position:relative}
+.ni:hover{background:var(--bg3);color:var(--text)}
+.ni.active{background:var(--gd);color:var(--gold)}
+.ni-icon{font-size:0.9rem;width:18px;text-align:center}
+.badge{background:var(--red);color:#fff;font-size:0.55rem;font-family:'DM Mono',monospace;padding:2px 6px;border-radius:10px;margin-left:auto}
+.badge.gold{background:var(--gold);color:var(--bg)}
+.sb-footer{padding:12px;border-top:1px solid var(--b)}
+.logout{display:flex;align-items:center;gap:8px;color:var(--t3);font-size:0.78rem;cursor:pointer;padding:8px;border-radius:6px;transition:all .15s}
+.logout:hover{color:var(--red);background:rgba(231,76,60,0.08)}
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;flex:1}
+.topbar-pill{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--green);background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);padding:3px 10px;border-radius:100px;letter-spacing:0.5px}
+.content{flex:1;overflow-y:auto;padding:20px}
+/* PAGE */
+.page{display:none}.page.active{display:block}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--b);border-radius:10px;margin-bottom:16px}
+.ch{padding:14px 18px 10px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
+.ct{font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem}
+.ca{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--gold);cursor:pointer;letter-spacing:0.5px}
+.cb{padding:14px 18px}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--bg2);border:1px solid var(--b);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.gold::before{background:var(--gold)}.kpi.green::before{background:var(--green)}.kpi.blue::before{background:var(--blue)}.kpi.orange::before{background:var(--orange)}
+.kl{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.kv{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800}
+.kc{font-size:0.72rem;color:var(--t2);margin-top:4px}
+/* GRID 2 */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* PROJECT CARDS */
+.proj-card{background:var(--bg2);border:1px solid var(--b);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.proj-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.proj-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.proj-name{font-family:'Syne',sans-serif;font-weight:700;font-size:0.92rem}
+.proj-service{font-size:0.76rem;color:var(--t2);margin-top:2px}
+.status-badge{font-family:'DM Mono',monospace;font-size:0.58rem;padding:3px 10px;border-radius:100px;letter-spacing:0.5px;flex-shrink:0}
+.status-badge.active{background:rgba(46,204,113,0.12);color:var(--green);border:1px solid rgba(46,204,113,0.2)}
+.status-badge.pending{background:rgba(230,126,34,0.12);color:var(--orange);border:1px solid rgba(230,126,34,0.2)}
+.prog-bar{height:4px;background:var(--bg4);border-radius:2px;margin:10px 0 6px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width .6s}
+.prog-info{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--t3)}
+.proj-meta{display:flex;gap:14px;margin-top:10px;font-size:0.72rem;color:var(--t2)}
+.proj-meta span{display:flex;align-items:center;gap:4px}
+/* STAGES */
+.stage-list{display:flex;flex-direction:column;gap:8px}
+.stage-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--b)}
+.stage-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--b2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.7rem;cursor:pointer;transition:all .2s}
+.stage-check.done{background:var(--green);border-color:var(--green);color:#fff}
+.stage-check.progress{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+.stage-name{flex:1;font-size:0.82rem}
+.stage-status{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3)}
+/* SAVE INDICATOR — BUG FIX #9: opacity transition instead of undefined fadeIn keyframe */
+#save-indicator{font-size:0.72rem;color:var(--green);display:none;opacity:0;transition:opacity .3s}
+#save-indicator.visible{display:inline;opacity:1}
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:420px}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:70%;padding:10px 14px;border-radius:10px;font-size:0.82rem;line-height:1.5}
+.msg.me{background:var(--gold);color:var(--bg);align-self:flex-end;border-bottom-right-radius:2px}
+.msg.them{background:var(--bg3);color:var(--text);align-self:flex-start;border-bottom-left-radius:2px}
+.msg-time{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--t3);margin-top:4px}
+.chat-input-wrap{border-top:1px solid var(--b);padding:12px 14px;display:flex;gap:8px}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--b);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;outline:none}
+.chat-input:focus{border-color:var(--gold)}
+.btn-send{background:var(--gold);border:none;color:var(--bg);padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem}
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-name{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--t3);text-align:center;padding:6px;letter-spacing:1px}
+.cal-day{background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:6px;min-height:60px;cursor:pointer;transition:border-color .15s}
+.cal-day:hover{border-color:var(--gold)}
+.cal-day.today{border-color:var(--gold);background:var(--gd)}
+.cal-day.has-event{border-color:var(--blue)}
+.cdn{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--t2);margin-bottom:4px}
+.cal-event{font-size:0.58rem;background:rgba(201,148,58,0.15);color:var(--gold);border-radius:3px;padding:2px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--b2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover{border-color:var(--gold);background:var(--gd)}
+.upload-icon{font-size:2.5rem;margin-bottom:10px}
+.upload-text{font-size:0.82rem;color:var(--t2)}
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.photo-thumb{aspect-ratio:1;background:var(--bg3);border:1px solid var(--b);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;overflow:hidden;transition:all .2s}
+.photo-thumb:hover{border-color:var(--gold)}
+/* LEADS */
+.lead-card{background:var(--bg2);border:1px solid var(--b);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .2s}
+.lead-card:hover{border-color:var(--gold)}
+.urgency-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.urgency-dot.hot{background:var(--red)}.urgency-dot.warm{background:var(--orange)}.urgency-dot.cool{background:var(--blue)}
+.lead-info{flex:1}
+.lead-name{font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem}
+.lead-sub{font-size:0.74rem;color:var(--t2);margin-top:2px}
+.lead-val{font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--gold);font-weight:500}
+/* BTNS */
+.btn{font-family:'DM Sans',sans-serif;font-weight:600;padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-size:0.8rem;transition:all .15s}
+.btn.gold{background:var(--gold);color:var(--bg)}.btn.gold:hover{background:var(--gold2)}
+.btn.ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--b)}.btn.ghost:hover{color:var(--text)}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--bg4)}
+/* TOAST — BUG FIX #14: remove duplicate border-left, keep only single correct declaration */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--b2);border-left:3px solid var(--green);border-radius:8px;padding:12px 18px;font-size:0.8rem;z-index:9999;transform:translateX(120%);transition:.3s}
+.toast.show{transform:translateX(0)}
+.theme-btn{background:var(--bg3);border:1px solid var(--b);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .15s;flex-shrink:0}
+.theme-btn:hover{border-color:var(--gold)}
+/* LOG */
+.log-item{padding:10px 0;border-bottom:1px solid var(--b);display:flex;gap:12px;align-items:flex-start}
+.log-date{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--t3);white-space:nowrap;width:70px;flex-shrink:0;padding-top:2px}
+.log-text{font-size:0.8rem;color:var(--t2);flex:1;line-height:1.5}
+/* BUG FIX #13: RESPONSIVE kpi-grid at 900px */
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sb">
+  <div class="sb-brand">
+    <img src="Logo Fundo azul.jpeg" alt="Bravo Homes Group" class="sb-logo">
+    <div class="sb-sub">Portal do Parceiro</div>
+  </div>
+  <div class="sb-partner">
+    <div class="av" id="sb-av">MR</div>
+    <div><div class="pname" id="sb-pname">Marcus Rivera</div><div class="prole">Parceiro</div></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Principal</div>
+    <div class="ni active" id="nav-dashboard" onclick="nav('dashboard',this)"><span class="ni-icon">◈</span>Dashboard</div>
+    <div class="sb-sec">Meus Projetos</div>
+    <div class="ni" id="nav-projects" onclick="nav('projects',this)"><span class="ni-icon">▦</span>Projetos Ativos<span class="badge gold">2</span></div>
+    <!-- BUG FIX #7: stages nav item has id="nav-stages" for reliable targeting -->
+    <div class="ni" id="nav-stages" onclick="nav('stages',this)"><span class="ni-icon">☑</span>Etapas da Obra</div>
+    <div class="ni" id="nav-calendar" onclick="nav('calendar',this)"><span class="ni-icon">◷</span>Calendário</div>
+    <div class="ni" id="nav-dailylog" onclick="nav('dailylog',this)"><span class="ni-icon">📋</span>Log Diário</div>
+    <div class="sb-sec">Comunicação</div>
+    <div class="ni" id="nav-leads" onclick="nav('leads',this)"><span class="ni-icon">◎</span>Leads Atribuídos<span class="badge">3</span></div>
+    <div class="ni" id="nav-chat" onclick="nav('chat',this)"><span class="ni-icon">💬</span>Chat<span class="badge">2</span></div>
+    <div class="sb-sec">Arquivos</div>
+    <div class="ni" id="nav-uploads" onclick="nav('uploads',this)"><span class="ni-icon">📷</span>Fotos &amp; Docs</div>
+    <div class="sb-sec">Conta</div>
+    <div class="ni" id="nav-profile" onclick="nav('profile',this)"><span class="ni-icon">◉</span>Meu Perfil</div>
+  </div>
+  <div class="sb-footer">
+    <!-- BUG FIX #3: logout calls doLogout() instead of direct redirect -->
+    <div class="logout" onclick="doLogout()">← Sair da conta</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="pg-title">Dashboard</div>
+    <div class="topbar-pill">🟢 Online</div>
+    <!-- IMPROVEMENT: dynamic date in topbar -->
+    <span id="topbar-date" style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--t3)"></span>
+    <div class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Alternar tema">🌙</div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi gold"><div class="kl">Projetos Ativos</div><div class="kv">2</div><div class="kc">1 concluindo esta semana</div></div>
+        <div class="kpi green"><div class="kl">Etapa Atual</div><div class="kv">4/8</div><div class="kc">Johnson Kitchen</div></div>
+        <div class="kpi blue"><div class="kl">Mensagens</div><div class="kv">2</div><div class="kc">Não lidas hoje</div></div>
+        <div class="kpi orange"><div class="kl">Leads Atribuídos</div><div class="kv">3</div><div class="kc">1 quente</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><span class="ct">Próximas Atividades</span><span class="ca" onclick="nav('calendar',document.getElementById('nav-calendar'))">Ver calendário →</span></div>
+          <div class="cb">
+            <div class="log-item"><div class="log-date">HOJE 8h</div><div class="log-text"><strong>Johnson Kitchen</strong> — Instalação de azulejos parede (cozinha)</div></div>
+            <div class="log-item"><div class="log-date">HOJE 14h</div><div class="log-text"><strong>Sandra Kim Bath</strong> — Início demolição banheiro social</div></div>
+            <div class="log-item"><div class="log-date">AMANHÃ</div><div class="log-text"><strong>Johnson Kitchen</strong> — Instalação de gabinetes inferiores</div></div>
+            <div class="log-item"><div class="log-date">SEX</div><div class="log-text"><strong>Johnson Kitchen</strong> — Vistoria final com cliente 🏁</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Alertas</span></div>
+          <div class="cb">
+            <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);font-size:0.8rem"><span>🔴</span><div><strong>Johnson Kitchen</strong> — Etapa 4 precisa de update de progresso hoje</div></div>
+            <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);font-size:0.8rem"><span>📷</span><div>Envie fotos da etapa 4 para o admin aprovar</div></div>
+            <div style="display:flex;gap:10px;padding:10px 0;font-size:0.8rem"><span>💬</span><div><strong>Sarah Mitchell</strong> enviou mensagem há 2h</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="page" id="page-projects">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div><div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase">2 projetos · $87,300 em andamento</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-top:3px">Meus Projetos Ativos</div></div>
+      </div>
+      <!-- BUG FIX #7: use getElementById('nav-stages') to navigate to stages -->
+      <div class="proj-card" onclick="nav('stages',document.getElementById('nav-stages'))">
+        <div class="proj-header">
+          <div><div class="proj-name">Johnson Family</div><div class="proj-service">Full Kitchen Remodel · Marietta, GA</div></div>
+          <span class="status-badge active">Ativo</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:75%"></div></div>
+        <div class="prog-info"><span>Progresso</span><span style="color:var(--gold)">75% — Etapa 4 de 8</span></div>
+        <div class="proj-meta"><span>📅 Início: 03/Mar</span><span>🏁 Entrega: 24/Mar</span><span style="color:var(--green)">💰 $48,500</span></div>
+      </div>
+      <div class="proj-card">
+        <div class="proj-header">
+          <div><div class="proj-name">Sandra Kim</div><div class="proj-service">Guest Bathroom Remodel · Roswell, GA</div></div>
+          <span class="status-badge pending">Em início</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:10%"></div></div>
+        <div class="prog-info"><span>Progresso</span><span style="color:var(--red)">10% — Etapa 1 de 8</span></div>
+        <div class="proj-meta"><span>📅 Início: 18/Mar</span><span>🏁 Entrega: 04/Abr</span><span style="color:var(--green)">💰 $22,800</span></div>
+      </div>
+    </div>
+
+    <!-- STAGES -->
+    <div class="page" id="page-stages">
+      <div style="margin-bottom:16px">
+        <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase">Johnson Family · Kitchen Remodel</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-top:3px">Etapas de Execução</div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">Johnson Kitchen — Progresso</span><span id="stages-pct" style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--gold)">0%</span></div>
+        <div class="cb">
+          <div class="prog-bar" style="margin-bottom:14px"><div class="prog-fill" id="stages-bar" style="width:0%"></div></div>
+          <div class="stage-list" id="stages-list"></div>
+          <div style="margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn gold" onclick="saveProgress()">💾 Salvar progresso</button>
+            <!-- BUG FIX #7 for uploads navigation -->
+            <button class="btn ghost" onclick="nav('uploads',document.getElementById('nav-uploads'))">📷 Enviar fotos desta etapa</button>
+            <!-- BUG FIX #9: opacity transition, no undefined fadeIn keyframe -->
+            <span id="save-indicator">✓ Salvo e visível no painel Bravo</span>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--gd);border:1px solid rgba(201,148,58,0.2);border-radius:8px;padding:12px 16px;font-size:0.78rem;color:var(--t2)">
+        <strong style="color:var(--gold)">📋 Como funciona:</strong> Clique no círculo de cada etapa que foi concluída e depois toque em <strong>Salvar progresso</strong> — o status aparecerá automaticamente no painel da Bravo Homes.
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="page" id="page-calendar">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div><div id="cal-month-label" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase"></div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-top:3px">Calendário de Obras</div></div>
+        <button class="btn gold" onclick="showToast('Adicionar atividade — em breve')">+ Atividade</button>
+      </div>
+      <div class="card">
+        <div class="cb">
+          <div class="cal-grid" style="margin-bottom:6px">
+            <div class="cal-day-name">DOM</div><div class="cal-day-name">SEG</div><div class="cal-day-name">TER</div><div class="cal-day-name">QUA</div><div class="cal-day-name">QUI</div><div class="cal-day-name">SEX</div><div class="cal-day-name">SÁB</div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Esta Semana</span></div>
+        <div class="cb">
+          <div class="log-item"><div class="log-date">SEG 17</div><div class="log-text"><strong>Johnson Kitchen</strong> — Revestimento: início da parede leste</div></div>
+          <div class="log-item"><div class="log-date">TER 18</div><div class="log-text"><strong>Sandra Kim</strong> — Início da obra — demolição banheiro</div></div>
+          <div class="log-item"><div class="log-date">QUI 20</div><div class="log-text"><strong>Johnson Kitchen</strong> — Revestimento parede + piso cozinha</div></div>
+          <div class="log-item"><div class="log-date">SEX 21</div><div class="log-text"><strong>Johnson Kitchen</strong> — Gabinetes inferiores</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAILY LOG -->
+    <div class="page" id="page-dailylog">
+      <div style="margin-bottom:16px"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem">Log Diário de Atividades</div></div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct" id="dailylog-date-title">Registrar hoje</span></div>
+        <div class="cb">
+          <div style="margin-bottom:10px">
+            <label style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Projeto</label>
+            <select style="background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;width:100%;outline:none">
+              <option>Johnson Family — Kitchen Remodel</option><option>Sandra Kim — Bathroom Remodel</option>
+            </select>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">O que foi feito hoje?</label>
+            <textarea id="log-text" style="width:100%;background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;resize:vertical;min-height:90px;outline:none" placeholder="Descreva as atividades realizadas..."></textarea>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px">Materiais utilizados</label>
+            <input type="text" style="width:100%;background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;outline:none" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte branco...">
+          </div>
+          <button class="btn gold" onclick="saveLog()">Salvar log do dia</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Histórico de Logs</span></div>
+        <div class="cb" style="padding-top:0">
+          <div class="log-item"><div class="log-date">19/Mar</div><div class="log-text">Finalizado revestimento piso cozinha (área de 28m²). Material: 50 peças cerâmicas 60x60.</div></div>
+          <div class="log-item"><div class="log-date">18/Mar</div><div class="log-text">Início rejunte paredes área molhada. 3 funcionários. Argamassa: 10 sacos de 5kg.</div></div>
+          <div class="log-item"><div class="log-date">17/Mar</div><div class="log-text">Assentamento azulejo parede leste (30 peças). Nivelamento concluído.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS -->
+    <div class="page" id="page-leads">
+      <div style="margin-bottom:16px"><div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase">3 leads · atribuídos pela Bravo</div><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-top:3px">Leads Atribuídos</div></div>
+      <div class="lead-card" onclick="showToast('Abrindo Sarah Mitchell...')">
+        <div class="urgency-dot hot"></div>
+        <div class="lead-info"><div class="lead-name">Sarah Mitchell</div><div class="lead-sub">Bathroom Remodel · Marietta, GA · (770) 555-0041</div></div>
+        <div><div class="lead-val">~$28k</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);text-align:right">QUENTE</div></div>
+      </div>
+      <div class="lead-card" onclick="showToast('Abrindo Diana Foster...')">
+        <div class="urgency-dot warm"></div>
+        <div class="lead-info"><div class="lead-name">Diana Foster</div><div class="lead-sub">Deck Build · Roswell, GA · (678) 555-0082</div></div>
+        <div><div class="lead-val">~$18k</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);text-align:right">MORNO</div></div>
+      </div>
+      <div class="lead-card" onclick="showToast('Abrindo Lisa Wang...')">
+        <div class="urgency-dot cool"></div>
+        <div class="lead-info"><div class="lead-name">Lisa Wang</div><div class="lead-sub">Bathroom Remodel · Canton, GA · (404) 555-0093</div></div>
+        <div><div class="lead-val">~$22k</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);text-align:right">FRIO</div></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="page" id="page-chat">
+      <div style="display:flex;height:calc(100vh - 100px);background:var(--bg2);border:1px solid var(--b);border-radius:10px;overflow:hidden">
+        <!-- SIDEBAR DE CONVERSAS -->
+        <div style="width:260px;border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--b);font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem">Conversas</div>
+          <div style="flex:1;overflow-y:auto">
+            <div id="chat-tab-cliente" onclick="switchChat('cliente')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:var(--gd);border-left:3px solid var(--gold)">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(46,204,113,0.2);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--green);flex-shrink:0">JF</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Johnson Family</div>
+                <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--t3)">Cliente · Kitchen Remodel</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+            </div>
+            <div id="chat-tab-admin" onclick="switchChat('admin')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .15s">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--gd);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--gold);flex-shrink:0">BH</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bravo Homes</div>
+                <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--t3)">Admin · Suporte e Coordenação</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-left:3px solid transparent;opacity:0.6" onclick="showToast('Conversa Sandra Kim — abrindo...')">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(230,126,34,0.15);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--orange);flex-shrink:0">SK</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600">Sandra Kim</div>
+                <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--t3)">Cliente · Bathroom</div>
+              </div>
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--t3);flex-shrink:0"></div>
+            </div>
+          </div>
+        </div>
+        <!-- AREA PRINCIPAL DE CHAT -->
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px">
+            <div id="chat-contact-av" style="width:32px;height:32px;border-radius:50%;background:rgba(46,204,113,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.7rem;color:var(--green);flex-shrink:0">JF</div>
+            <div>
+              <div id="chat-contact-name" style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.88rem">Johnson Family</div>
+              <div id="chat-contact-sub" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--t3)">Cliente · Kitchen Remodel · Marietta, GA</div>
+            </div>
+            <div id="chat-realtime-badge" style="display:none;margin-left:auto;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--green);background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.2);padding:3px 10px;border-radius:100px">● Realtime</div>
+          </div>
+          <div id="chat-msgs-area" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
+          </div>
+          <div style="padding:12px 16px;border-top:1px solid var(--b);display:flex;gap:8px">
+            <input id="chat-inp-parceiro" class="chat-input" style="flex:1" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendPartnerMsg()">
+            <button class="btn gold" onclick="sendPartnerMsg()">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOADS -->
+    <div class="page" id="page-uploads">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem">Fotos &amp; Documentos</div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">📷 Upload de Fotos</span><span class="ca">Johnson Kitchen · Etapa 4</span></div>
+        <div class="cb">
+          <div class="upload-zone" onclick="showToast('Selecione as fotos...')">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">Clique ou arraste fotos aqui</div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);margin-top:6px">JPG, PNG, HEIC · Até 20 fotos por vez</div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin:16px 0 8px">Fotos enviadas — Etapa 4</div>
+          <div class="photo-grid">
+            <div class="photo-thumb" onclick="showToast('Visualizando foto...')">🏗️</div>
+            <div class="photo-thumb" onclick="showToast('Visualizando foto...')">🧱</div>
+            <div class="photo-thumb" onclick="showToast('Visualizando foto...')">🔨</div>
+            <div class="photo-thumb" style="border-style:dashed;color:var(--t3);font-size:1.2rem" onclick="showToast('Adicionar foto...')">+</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📄 Documentos</span><button class="btn gold" style="font-size:0.72rem;padding:5px 14px" onclick="showToast('Upload de documento...')">+ Doc</button></div>
+        <div class="cb">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b)"><span style="font-size:1.2rem">📋</span><div style="flex:1"><div style="font-size:0.82rem;font-weight:600">Orçamento Johnson Kitchen.pdf</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3)">ORÇAMENTO · 03/Mar/2026 · 420 KB</div></div><button class="btn ghost" style="font-size:0.72rem;padding:5px 12px">Ver</button></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b)"><span style="font-size:1.2rem">📝</span><div style="flex:1"><div style="font-size:0.82rem;font-weight:600">Contrato Assinado — Johnson.pdf</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3)">CONTRATO · 02/Mar/2026 · 1.2 MB</div></div><button class="btn ghost" style="font-size:0.72rem;padding:5px 12px">Ver</button></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0"><span style="font-size:1.2rem">🧾</span><div style="flex:1"><div style="font-size:0.82rem;font-weight:600">NF Materiais Mar-2026.pdf</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3)">NOTA FISCAL · 15/Mar/2026 · 380 KB</div></div><button class="btn ghost" style="font-size:0.72rem;padding:5px 12px">Ver</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div style="margin-bottom:16px"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem">Meu Perfil</div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><span class="ct">Dados Pessoais</span><span class="ca" onclick="showToast('Editar perfil...')">Editar</span></div>
+          <div class="cb">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+              <div id="profile-av" style="width:56px;height:56px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:var(--bg)">MR</div>
+              <div><div id="profile-name" style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">Marcus Rivera</div><div style="font-size:0.78rem;color:var(--t2)">Parceiro · Bathroom Remodel Specialist</div><div style="color:var(--gold);font-size:0.75rem;margin-top:4px">★★★★★ 5.0</div></div>
+            </div>
+            <div class="log-item"><div class="log-date">E-mail</div><div class="log-text" id="profile-email">marcus@bravohomes.com</div></div>
+            <div class="log-item"><div class="log-date">Telefone</div><div class="log-text">(770) 555-0101</div></div>
+            <div class="log-item"><div class="log-date">Cidade</div><div class="log-text">Marietta, GA</div></div>
+            <div class="log-item"><div class="log-date">Especialidade</div><div class="log-text">Bathroom Remodel</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Histórico</span></div>
+          <div class="cb">
+            <div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+              <div class="kpi gold"><div class="kl">Projetos</div><div class="kv" style="font-size:1.3rem">8</div><div class="kc">concluídos</div></div>
+              <div class="kpi green"><div class="kl">Recebido</div><div class="kv" style="font-size:1.3rem">$62k</div><div class="kc">total pago</div></div>
+            </div>
+            <div class="log-item"><div class="log-date">Mar/26</div><div class="log-text">Johnson Kitchen — $48,500 · Em andamento</div></div>
+            <div class="log-item"><div class="log-date">Jan/26</div><div class="log-text">Martinez Bathroom — $22,000 · ✅ Concluído</div></div>
+            <div class="log-item"><div class="log-date">Dez/25</div><div class="log-text">Webb Master Bath — $38,000 · ✅ Concluído</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// SUPABASE SETUP
+// ============================================================
+const SUPABASE_URL = 'https://tyeaqluofishcvhvpwrg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cGwqDIEZhMLIYzCg5oQLXg_PTlgtLRu';
+
+// Detect demo mode: placeholder key or empty
+const DEMO_MODE = !SUPABASE_URL || !SUPABASE_KEY ||
+  SUPABASE_URL.includes('YOUR_') || SUPABASE_KEY.includes('YOUR_') ||
+  SUPABASE_URL === '' || SUPABASE_KEY === '';
+
+let sb = null;
+if (!DEMO_MODE && typeof window.supabase !== 'undefined') {
+  try {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch(e) {
+    console.warn('Supabase init failed, running in demo mode:', e);
+  }
+}
+
+// ============================================================
+// BUG FIX #2: AUTH GUARD — check session, redirect if needed
+// ============================================================
+async function checkAuth() {
+  if (DEMO_MODE || !sb) {
+    // Demo mode: skip auth, use mock data
+    initApp();
+    return;
+  }
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error || !session) {
+      window.location.href = 'bravo-login.html';
+      return;
+    }
+    // Check role from user metadata or profiles table
+    const role = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
+    if (role && role !== 'partner') {
+      window.location.href = 'bravo-login.html';
+      return;
+    }
+    // Populate user info from session
+    const email = session.user?.email || '';
+    const fullName = session.user?.user_metadata?.full_name ||
+                     session.user?.user_metadata?.name ||
+                     email.split('@')[0] || 'Parceiro';
+    const initials = fullName.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'P';
+    setPartnerUI(fullName, initials, email);
+    initApp(session);
+  } catch(e) {
+    console.warn('Auth check failed, running in demo mode:', e);
+    initApp();
+  }
+}
+
+function setPartnerUI(name, initials, email) {
+  const els = [
+    {id:'sb-av', val:initials},
+    {id:'sb-pname', val:name},
+    {id:'profile-av', val:initials},
+    {id:'profile-name', val:name},
+    {id:'profile-email', val:email}
+  ];
+  els.forEach(({id, val})=>{
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  });
+}
+
+// ============================================================
+// BUG FIX #3: LOGOUT — signOut then redirect
+// ============================================================
+async function doLogout() {
+  if (sb && !DEMO_MODE) {
+    try { await sb.auth.signOut(); } catch(e) {}
+  }
+  window.location.href = 'bravo-login.html';
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const titles = {
+    dashboard:'Dashboard',projects:'Meus Projetos',stages:'Etapas da Obra',
+    calendar:'Calendário de Obras',dailylog:'Log Diário',leads:'Leads Atribuídos',
+    chat:'Chat',uploads:'Fotos & Documentos',profile:'Meu Perfil'
+  };
+  document.getElementById('pg-title').textContent = titles[id] || id;
+  if (id === 'chat') renderChatMsgs();
+}
+
+// ============================================================
+// BUG FIX #8: TOAST — clear timer to prevent double-toast
+// ============================================================
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ============================================================
+// BUG FIX #6: THEME — key 'bravo_theme' (consistent)
+// ============================================================
+let currentTheme = localStorage.getItem('bravo_theme') || 'dark';
+function applyTheme(t) {
+  currentTheme = t;
+  document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : '');
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = t === 'light' ? '🌙' : '☀️';
+  localStorage.setItem('bravo_theme', t);
+}
+function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+applyTheme(currentTheme);
+
+// ============================================================
+// DYNAMIC DATE — topbar and daily log title
+// ============================================================
+function setDynamicDate() {
+  const now = new Date();
+  const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const monthNamesFull = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const dayStr = dayNames[now.getDay()];
+  const dateStr = `${dayStr}, ${String(now.getDate()).padStart(2,'0')} ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  const el = document.getElementById('topbar-date');
+  if (el) el.textContent = dateStr;
+  const logTitle = document.getElementById('dailylog-date-title');
+  if (logTitle) logTitle.textContent = `Registrar hoje — ${dayStr}, ${String(now.getDate()).padStart(2,'0')}/${monthNames[now.getMonth()]}`;
+  // Calendar month label
+  const calLabel = document.getElementById('cal-month-label');
+  if (calLabel) calLabel.textContent = `${monthNamesFull[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+// ============================================================
+// BUG FIX #5: CALENDAR — dynamic generation based on new Date()
+// ============================================================
+function buildCal() {
+  const now = new Date();
+  const today = now.getDate();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  // First day of month (0=Sun...6=Sat)
+  const firstDay = new Date(year, month, 1).getDay();
+  // Days in month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Events — keyed by day number (demo data)
+  const events = {17:'Johnson Kitchen',18:'Sandra Kim',20:'Johnson Kitchen',21:'Johnson Kitchen',24:'Vistoria Final'};
+  const g = document.getElementById('cal-grid');
+  if (!g) return;
+  g.innerHTML = '';
+  // Blank cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'cal-day';
+    blank.style.visibility = 'hidden';
+    g.appendChild(blank);
+  }
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const div = document.createElement('div');
+    let cls = 'cal-day';
+    if (d === today) cls += ' today';
+    if (events[d]) cls += ' has-event';
+    div.className = cls;
+    div.innerHTML = `<div class="cdn">${d}</div>${events[d] ? `<div class="cal-event">${events[d]}</div>` : ''}`;
+    g.appendChild(div);
+  }
+}
+
+// ============================================================
+// STAGES — dynamic with localStorage + optional Supabase sync
+// ============================================================
+const STAGES_KEY = 'bravo_stages_johnson';
+const STAGES_ADMIN_KEY = 'bravo_admin_stages_johnson'; // BUG FIX #12: keep consistent key
+const STAGES_DATA = [
+  {name:'1. Demolição e retirada de materiais',status:'done',date:'04/Mar'},
+  {name:'2. Instalação hidráulica',status:'done',date:'07/Mar'},
+  {name:'3. Instalação elétrica',status:'done',date:'10/Mar'},
+  {name:'4. Revestimento (piso e azulejo)',status:'progress',date:''},
+  {name:'5. Instalação de gabinetes',status:'pending',date:''},
+  {name:'6. Instalação de louças e metais',status:'pending',date:''},
+  {name:'7. Acabamentos finais e pintura',status:'pending',date:''},
+  {name:'8. Limpeza pós-obra + vistoria com cliente',status:'pending',date:''}
+];
+let currentStages = [];
+
+function initStages() {
+  const saved = localStorage.getItem(STAGES_KEY);
+  currentStages = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(STAGES_DATA));
+  // If Supabase is available, try to load from project_stages table
+  if (sb && !DEMO_MODE) {
+    loadStagesFromSupabase();
+  }
+  renderStages();
+}
+
+async function loadStagesFromSupabase() {
+  try {
+    const { data, error } = await sb.from('project_stages')
+      .select('*')
+      .eq('project_id', 'johnson_kitchen')
+      .order('stage_order');
+    if (!error && data && data.length > 0) {
+      currentStages = data.map(row => ({
+        name: row.stage_name || row.name,
+        status: row.status,
+        date: row.completed_date || row.date || ''
+      }));
+      renderStages();
+    }
+  } catch(e) {
+    // silently fall back to localStorage
+  }
+}
+
+function renderStages() {
+  const list = document.getElementById('stages-list'); if (!list) return;
+  const done = currentStages.filter(s=>s.status==='done').length;
+  const pct = Math.round((done/currentStages.length)*100);
+  const bar = document.getElementById('stages-bar');
+  const pctEl = document.getElementById('stages-pct');
+  if (bar) bar.style.width = pct+'%';
+  if (pctEl) pctEl.textContent = pct+'%';
+  list.innerHTML = currentStages.map((s,i) => {
+    if (s.status === 'done')
+      return `<div class="stage-item" data-idx="${i}"><div class="stage-check done" onclick="toggleStage(${i})">✓</div><div class="stage-name">${s.name}</div><div class="stage-status" style="color:var(--green)">Concluído${s.date?' · '+s.date:''}</div></div>`;
+    if (s.status === 'progress')
+      return `<div class="stage-item" style="border-color:var(--gold)" data-idx="${i}"><div class="stage-check progress" onclick="toggleStage(${i})">→</div><div class="stage-name" style="color:var(--gold)">${s.name}</div><div class="stage-status" style="color:var(--gold)">Em progresso — clique para concluir</div></div>`;
+    return `<div class="stage-item" data-idx="${i}"><div class="stage-check" onclick="toggleStage(${i})"></div><div class="stage-name">${s.name}</div><div class="stage-status">Pendente</div></div>`;
+  }).join('');
+}
+
+function toggleStage(i) {
+  const s = currentStages[i];
+  if (s.status === 'done') { s.status = 'pending'; s.date = ''; }
+  else {
+    s.status = 'done';
+    const now = new Date();
+    s.date = String(now.getDate()).padStart(2,'0')+'/'+['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][now.getMonth()];
+  }
+  renderStages();
+  showToast(s.status === 'done' ? '✅ Etapa marcada como concluída!' : '↩ Etapa revertida para pendente');
+}
+
+async function saveProgress() {
+  // Save to localStorage
+  localStorage.setItem(STAGES_KEY, JSON.stringify(currentStages));
+  // Notify admin via localStorage (BUG FIX #12: consistent key)
+  const adminNotif = {
+    projectId: 'johnson_kitchen', projectName: 'Johnson Kitchen',
+    partner: document.getElementById('sb-pname')?.textContent || 'Marcus Rivera',
+    stages: currentStages, updatedAt: new Date().toISOString()
+  };
+  localStorage.setItem(STAGES_ADMIN_KEY, JSON.stringify(adminNotif));
+  // Save to Supabase project_stages table if configured
+  if (sb && !DEMO_MODE) {
+    try {
+      for (let i = 0; i < currentStages.length; i++) {
+        const s = currentStages[i];
+        await sb.from('project_stages').upsert({
+          project_id: 'johnson_kitchen',
+          stage_order: i + 1,
+          stage_name: s.name,
+          status: s.status,
+          completed_date: s.date || null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'project_id,stage_order' });
+      }
+    } catch(e) {
+      console.warn('Supabase stage sync failed:', e);
+    }
+  }
+  // BUG FIX #9: opacity transition-based show/hide
+  const ind = document.getElementById('save-indicator');
+  if (ind) {
+    ind.classList.add('visible');
+    setTimeout(()=>ind.classList.remove('visible'), 4000);
+  }
+  showToast('💾 Progresso salvo! Bravo foi notificada.');
+}
+
+// ============================================================
+// CHAT — with localStorage sync + optional Supabase realtime
+// ============================================================
+const CHAT_HISTORY = {
+  cliente: [
+    {from:'them',text:'Oi Marcus, como está o andamento da cozinha?',time:'hoje, 09:14'},
+    {from:'me',text:'Bom dia! Estamos na etapa 4, azulejo da parede. Tá ficando lindo! Vou mandar fotos ainda hoje.',time:'hoje, 09:32'},
+    {from:'them',text:'Ótimo! Super ansiosa pra ver 😊',time:'hoje, 09:35'}
+  ],
+  admin: [
+    {from:'them',text:'Marcus, o cliente Johnson confirmou que quer o rejunte cinza claro, não o branco.',time:'hoje, 08:20'},
+    {from:'me',text:'Entendido! Já ajustei o pedido de material.',time:'hoje, 08:45'},
+    {from:'them',text:'Perfeito. Vai ter visita do dono na sexta às 15h pra ver o andamento.',time:'hoje, 10:01'}
+  ]
+};
+const CHAT_INFO = {
+  cliente: {name:'Johnson Family',sub:'Cliente · Kitchen Remodel · Marietta, GA',av:'JF',avBg:'rgba(46,204,113,0.2)',avColor:'var(--green)'},
+  admin:   {name:'Bravo Homes',sub:'Admin · Coordenação e Suporte',av:'BH',avBg:'var(--gd)',avColor:'var(--gold)'}
+};
+let activeChat = 'cliente';
+let _realtimeSub = null;
+
+function switchChat(who) {
+  activeChat = who;
+  const ctEl = document.getElementById('chat-tab-cliente');
+  const atEl = document.getElementById('chat-tab-admin');
+  if (ctEl) { ctEl.style.background = who==='cliente'?'var(--gd)':''; ctEl.style.borderLeftColor = who==='cliente'?'var(--gold)':'transparent'; }
+  if (atEl) { atEl.style.background = who==='admin'?'var(--gd)':'';   atEl.style.borderLeftColor = who==='admin'?'var(--gold)':'transparent'; }
+  const info = CHAT_INFO[who];
+  const avEl = document.getElementById('chat-contact-av');
+  if (avEl) { avEl.textContent = info.av; avEl.style.background = info.avBg; avEl.style.color = info.avColor; }
+  const nameEl = document.getElementById('chat-contact-name');
+  if (nameEl) nameEl.textContent = info.name;
+  const subEl = document.getElementById('chat-contact-sub');
+  if (subEl) subEl.textContent = info.sub;
+  renderChatMsgs();
+}
+
+// BUG FIX #11: merge admin messages from localStorage 'bravo_chat_admin' (from:'admin')
+function renderChatMsgs() {
+  const area = document.getElementById('chat-msgs-area'); if (!area) return;
+  let msgs = [...CHAT_HISTORY[activeChat]];
+  // Merge admin-originated messages from localStorage when viewing admin chat
+  if (activeChat === 'admin') {
+    try {
+      const stored = JSON.parse(localStorage.getItem('bravo_chat_admin') || '[]');
+      const adminMsgs = stored.filter(m => m.from === 'admin').map(m => ({
+        from: 'them', text: m.text, time: m.time || 'recente'
+      }));
+      // Avoid duplicates by text (simple heuristic)
+      const existingTexts = new Set(msgs.map(m=>m.text));
+      adminMsgs.forEach(m => { if (!existingTexts.has(m.text)) msgs.push(m); });
+    } catch(e) {}
+  }
+  area.innerHTML = msgs.map(m => {
+    if (m.from === 'me')
+      return `<div style="display:flex;flex-direction:column;align-items:flex-end"><div style="background:var(--gold);color:var(--bg);padding:8px 14px;border-radius:18px 18px 4px 18px;max-width:70%;font-family:'DM Sans',sans-serif;font-size:0.82rem;line-height:1.4">${m.text}</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);margin-top:3px;margin-right:4px">${m.time}</div></div>`;
+    return `<div style="display:flex;flex-direction:column;align-items:flex-start"><div style="background:var(--bg3);border:1px solid var(--b);padding:8px 14px;border-radius:18px 18px 18px 4px;max-width:70%;font-family:'DM Sans',sans-serif;font-size:0.82rem;line-height:1.4">${m.text}</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--t3);margin-top:3px;margin-left:4px">${m.time}</div></div>`;
+  }).join('');
+  area.scrollTop = area.scrollHeight;
+}
+
+// BUG FIX #4: capture text BEFORE clearing inp.value
+function sendPartnerMsg() {
+  const inp = document.getElementById('chat-inp-parceiro');
+  if (!inp) return;
+  // BUG FIX: capture text first, THEN clear
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  const now = new Date();
+  const time = 'hoje, '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  CHAT_HISTORY[activeChat].push({from:'me', text, time});
+  renderChatMsgs();
+  // Persist to localStorage for admin sync
+  const chatKey = 'bravo_chat_'+activeChat;
+  const history = JSON.parse(localStorage.getItem(chatKey) || '[]');
+  const partnerName = document.getElementById('sb-pname')?.textContent || 'Marcus Rivera';
+  history.push({from:'parceiro', name:partnerName, text, time, channel:activeChat});
+  localStorage.setItem(chatKey, JSON.stringify(history));
+  // Send to Supabase messages table if configured
+  if (sb && !DEMO_MODE) {
+    sb.from('messages').insert({
+      channel: activeChat,
+      sender: 'partner',
+      sender_name: partnerName,
+      content: text,
+      created_at: new Date().toISOString()
+    }).then(({error})=>{ if(error) console.warn('Message send failed:', error); });
+  }
+  showToast('Mensagem enviada!');
+}
+
+// Supabase Realtime chat subscription
+function setupRealtimeChat() {
+  if (!sb || DEMO_MODE) return;
+  try {
+    _realtimeSub = sb.channel('chat-messages')
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
+        const msg = payload.new;
+        if (!msg) return;
+        const channel = msg.channel;
+        if (channel !== 'cliente' && channel !== 'admin') return;
+        if (msg.sender === 'partner') return; // own messages already added
+        CHAT_HISTORY[channel].push({
+          from: 'them',
+          text: msg.content,
+          time: new Date(msg.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
+        });
+        if (activeChat === channel) renderChatMsgs();
+        else showToast('💬 Nova mensagem recebida!');
+      })
+      .subscribe();
+    // Show realtime badge
+    const badge = document.getElementById('chat-realtime-badge');
+    if (badge) badge.style.display = 'block';
+  } catch(e) {
+    console.warn('Realtime setup failed:', e);
+  }
+}
+
+// ============================================================
+// DAILY LOG
+// ============================================================
+function saveLog() {
+  const t = document.getElementById('log-text');
+  if (!t.value.trim()) return showToast('Digite o que foi feito hoje!');
+  showToast('✅ Log do dia salvo com sucesso!');
+  t.value = '';
+}
+
+// ============================================================
+// INIT APP — called after auth check
+// ============================================================
+function initApp(session) {
+  setDynamicDate();
+  buildCal();
+  initStages();
+  renderChatMsgs();
+  if (sb && !DEMO_MODE) {
+    setupRealtimeChat();
+  }
+}
+
+// ============================================================
+// BOOTSTRAP
+// ============================================================
+checkAuth();
+</script>
+</body>
+</html>
