@@ -21,6 +21,7 @@ export default function Login() {
   const [regPassword, setRegPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showEmailPopup, setShowEmailPopup] = useState(false);
   
   const handleProfileSelect = (role: 'admin' | 'parceiro') => {
     setSelectedRole(role);
@@ -79,9 +80,7 @@ export default function Login() {
     if (error) {
       setAuthError(error.message);
     } else {
-      alert(t('accountCreated'));
-      setActiveView('login');
-      setEmail(regEmail);
+      setShowEmailPopup(true);
     }
   };
 
@@ -228,6 +227,31 @@ export default function Login() {
           Bravo Homes Group © 2026<br/><span>Atlanta, Georgia</span>
         </div>
       </div>
+
+      {/* EMAIL CONFIRMATION POPUP */}
+      {showEmailPopup && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>
+          <div style={{background:'linear-gradient(145deg,#161920,#1a1e28)',border:'1px solid rgba(184,150,80,0.2)',borderRadius:'16px',maxWidth:'420px',width:'90%',padding:'40px 32px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
+            <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'linear-gradient(135deg,rgba(184,150,80,0.2),rgba(184,150,80,0.05))',border:'2px solid rgba(184,150,80,0.3)',margin:'0 auto 20px',lineHeight:'64px',fontSize:'28px'}}>📧</div>
+            <h2 style={{margin:'0 0 12px',fontSize:'1.3rem',fontWeight:700,color:'#fff'}}>Verifique seu E-mail</h2>
+            <p style={{margin:'0 0 8px',fontSize:'0.95rem',lineHeight:1.6,color:'#a0a8b8'}}>
+              Enviamos um e-mail de confirmação para:
+            </p>
+            <p style={{margin:'0 0 16px',fontSize:'1rem',fontWeight:700,color:'#b89650',wordBreak:'break-all'}}>
+              {regEmail}
+            </p>
+            <p style={{margin:'0 0 24px',fontSize:'0.85rem',lineHeight:1.6,color:'#7a8299'}}>
+              Acesse sua caixa de entrada e clique no botão <strong style={{color:'#b89650'}}>"Confirmar meu E-mail"</strong> para ativar sua conta. Só depois você conseguirá fazer login.
+            </p>
+            <button onClick={() => { setShowEmailPopup(false); setActiveView('login'); setEmail(regEmail); }} style={{background:'linear-gradient(135deg,#b89650,#a07d3a)',color:'#fff',border:'none',borderRadius:'8px',padding:'12px 40px',fontSize:'0.95rem',fontWeight:700,cursor:'pointer',boxShadow:'0 4px 15px rgba(184,150,80,0.3)',transition:'transform 0.15s'}}>
+              Entendi, vou verificar!
+            </button>
+            <p style={{margin:'16px 0 0',fontSize:'0.7rem',color:'#4a4f60'}}>
+              Não recebeu? Verifique a pasta de spam.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
