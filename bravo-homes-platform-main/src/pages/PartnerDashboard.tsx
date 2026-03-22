@@ -91,7 +91,7 @@ export default function PartnerDashboard() {
       const { data: adminUsers } = await supabase.from('profiles').select('*').eq('role', 'admin');
       if (adminUsers && adminUsers.length > 0) setAdminUser(adminUsers[0]);
 
-      // Load clients for individual chat threads
+      // Load ALL clients for lookup (used to resolve names in chat)
       const { data: clientsData } = await supabase.from('clients').select('*').order('name');
       if (clientsData) setClients(clientsData);
 
@@ -476,6 +476,20 @@ export default function PartnerDashboard() {
     }
     return false;
   });
+
+  // Derive chat client list from messages (only show clients with active conversations)
+  const chatClients = React.useMemo(() => {
+    if (!user) return [];
+    const contactIds = new Set<string>();
+    messages.forEach((m: any) => {
+      if (m.sender_id === user.id && m.receiver_id && m.receiver_id !== adminUser?.id) contactIds.add(m.receiver_id);
+      if (m.receiver_id === user.id && m.sender_id && m.sender_id !== adminUser?.id) contactIds.add(m.sender_id);
+    });
+    return Array.from(contactIds).map(id => {
+      const client = clients.find((c: any) => c.id === id);
+      return client || { id, name: 'Cliente', email: '', phone: '' };
+    });
+  }, [messages, user, adminUser, clients]);
 
   // === PROFILE FUNCTIONS ===
   const [profileData, setProfileData] = useState<any>(null);
@@ -1099,10 +1113,10 @@ export default function PartnerDashboard() {
                       </div>
                       {messages.filter((m: any) => m.topic === 'admin').length > 0 && <span className="badge gold" style={{fontSize:'0.6rem'}}>{messages.filter((m: any) => m.topic === 'admin').length}</span>}
                     </div>
-                    {/* Individual client conversations */}
-                    <div style={{padding:'10px 14px 4px',fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1}}>Clientes ({clients.length})</div>
-                    {clients.length === 0 && <div style={{padding:'8px 14px',fontSize:'0.75rem',color:'var(--t3)',fontStyle:'italic'}}>Nenhum cliente</div>}
-                    {clients.map((c: any) => {
+                    {/* Individual client conversations - only those with messages */}
+                    <div style={{padding:'10px 14px 4px',fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1}}>Clientes ({chatClients.length})</div>
+                    {chatClients.length === 0 && <div style={{padding:'8px 14px',fontSize:'0.75rem',color:'var(--t3)',fontStyle:'italic'}}>Nenhum cliente</div>}
+                    {chatClients.map((c: any) => {
                       const isSelected = chatTab === 'client' && selectedChatClient?.id === c.id;
                       const unread = messages.filter((m: any) => m.sender_id === c.id && m.receiver_id === user?.id).length;
                       return (

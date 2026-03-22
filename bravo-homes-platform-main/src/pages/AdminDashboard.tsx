@@ -72,6 +72,7 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [allChatMessages, setAllChatMessages] = useState<any[]>([]);
 
   // Media & Audio States
   const [isRecording, setIsRecording] = useState(false);
@@ -287,6 +288,14 @@ export default function AdminDashboard() {
       const { data: partData } = await supabase.from('profiles').select('*').eq('role', 'parceiro');
       if (partData) setPartners(partData);
 
+      // Load all messages involving admin for chat sidebar derivation
+      if (currentUser) {
+        const { data: chatMsgs } = await supabase.from('messages')
+          .select('sender_id, receiver_id')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+        if (chatMsgs) setAllChatMessages(chatMsgs);
+      }
+
       const { data: calData } = await supabase.from('calendar_events').select('*');
       if (calData) setCalendarEvents(calData);
 
@@ -343,6 +352,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Compute chat partners from actual messages (only those with active conversations)
+  const chatPartners = React.useMemo(() => {
+    if (!user) return [];
+    const contactIds = new Set<string>();
+    allChatMessages.forEach((m: any) => {
+      if (m.sender_id === user.id && m.receiver_id) contactIds.add(m.receiver_id);
+      if (m.receiver_id === user.id && m.sender_id) contactIds.add(m.sender_id);
+    });
+    return partners.filter(p => contactIds.has(p.id));
+  }, [allChatMessages, user, partners]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -703,6 +723,7 @@ export default function AdminDashboard() {
       created_at: new Date().toISOString()
     };
     setMessages(prev => [...prev, tempMsg]);
+    setAllChatMessages(prev => [...prev, { sender_id: user.id, receiver_id: selectedChatUser.id }]);
     setNewMessage('');
     
     const { error } = await supabase.from('messages').insert([{
@@ -1707,7 +1728,7 @@ export default function AdminDashboard() {
               <div className="card" style={{width: '300px', display: 'flex', flexDirection: 'column', height: '100%', padding: '0'}}>
                  <div style={{padding: '16px', borderBottom: '1px solid var(--b)', fontWeight: 700}}>Parceiros (Chat)</div>
                  <div style={{flex: 1, overflowY: 'auto'}}>
-                   {partners.map(p => (
+                   {chatPartners.map(p => (
                      <div key={p.id} onClick={() => setSelectedChatUser(p)} style={{padding: '12px 16px', borderBottom: '1px solid var(--b)', cursor: 'pointer', background: selectedChatUser?.id === p.id ? 'var(--bg3)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px'}}>
                        <div className="av" style={{background: 'var(--gold)', color: '#000', width: '32px', height: '32px', fontSize: '0.8rem', fontWeight: 'bold'}}>{(p.full_name || p.name || 'PA').substring(0,2).toUpperCase()}</div>
                         <div style={{flex:1,minWidth:0}}>
@@ -1721,13 +1742,16 @@ export default function AdminDashboard() {
                             !((m.sender_id === user?.id && m.receiver_id === p.id) ||
                               (m.sender_id === p.id && m.receiver_id === user?.id))
                           ));
-                          setPartners(prev => prev.filter(x => x.id !== p.id));
+                          setAllChatMessages(prev => prev.filter(m =>
+                            !((m.sender_id === user?.id && m.receiver_id === p.id) ||
+                              (m.sender_id === p.id && m.receiver_id === user?.id))
+                          ));
                           if (selectedChatUser?.id === p.id) setSelectedChatUser(null);
                           showToast('Conversa apagada com sucesso!');
                         }); }} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:'0.85rem',padding:'4px',color:'var(--t3)',opacity:0.5,transition:'opacity .15s'}} onMouseEnter={e => (e.currentTarget.style.opacity = '1')} onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}>🗑️</button>
                      </div>
                    ))}
-                   {partners.length === 0 && <div style={{padding: '20px', color: 'var(--t3)', fontSize: '0.85rem', textAlign: 'center'}}>Nenhum parceiro encontrado.</div>}
+                   {chatPartners.length === 0 && <div style={{padding: '20px', color: 'var(--t3)', fontSize: '0.85rem', textAlign: 'center'}}>Nenhuma conversa ativa.</div>}
                  </div>
               </div>
               <div className="card" style={{flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '0'}}>
