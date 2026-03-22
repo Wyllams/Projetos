@@ -57,7 +57,7 @@ export default function AdminDashboard() {
 
   // Event Modal
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [eventForm, setEventForm] = useState({ lead_id: '', date: '', time: '14:00', title: '' });
+  const [eventForm, setEventForm] = useState({ lead_id: '', date: '', time: '00:00', title: '' });
 
   // LP Modal
   const [isLPOpen, setIsLPOpen] = useState(false);
@@ -636,7 +636,7 @@ export default function AdminDashboard() {
             updateLead(eventForm.lead_id, { status: 'scheduling' });
         }
         setIsEventModalOpen(false);
-        setEventForm({ lead_id: '', date: '', time: '14:00', title: '' });
+        setEventForm({ lead_id: '', date: '', time: '00:00', title: '' });
       }
     } catch(err: any) {
       console.error(err);
@@ -1335,7 +1335,7 @@ export default function AdminDashboard() {
                     Sincronizar Google
                   </button>
                   <button className="btn gold" onClick={() => {
-                     setEventForm({ lead_id: '', date: '', time: '14:00', title: '' });
+                     setEventForm({ lead_id: '', date: '', time: '00:00', title: '' });
                      setIsEventModalOpen(true);
                   }}>+ Novo Evento</button>
                 </div>
@@ -1967,7 +1967,7 @@ export default function AdminDashboard() {
                 <div className="dlabel" style={{marginTop: '20px'}}>Outras Ações</div>
                     <button className="btn ghost" style={{width: '100%', marginBottom: '10px'}} onClick={() => {
                         const leadName = selectedLead.clients?.name || selectedLead.name || 'Desconhecido';
-                        setEventForm({ lead_id: selectedLead.id, date: '', time: '14:00', title: `Vistoria: ${leadName}` });
+                        setEventForm({ lead_id: selectedLead.id, date: '', time: '00:00', title: `Vistoria: ${leadName}` });
                         setIsEventModalOpen(true);
                     }}>
                       🗓️ Agendar Vistoria
