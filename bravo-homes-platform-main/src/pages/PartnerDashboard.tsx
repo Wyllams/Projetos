@@ -43,6 +43,7 @@ export default function PartnerDashboard() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', event_date: '', start_time: '', project_id: '' });
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [logForm, setLogForm] = useState({ project_id: '', log_text: '', materials: '' });
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
@@ -298,6 +299,32 @@ export default function PartnerDashboard() {
     await supabase.from('calendar_events').delete().eq('id', eventId);
     setEvents(prev => prev.filter(e => e.id !== eventId));
     showToast('Removido', 'Evento removido.', 'success');
+  };
+
+  const handleEditEventSave = async () => {
+    if (!editingEvent) return;
+    try {
+      const { error } = await supabase.from('calendar_events').update({
+        event_date: editingEvent.date,
+        start_time: editingEvent.time,
+        title: editingEvent.title,
+      }).eq('id', editingEvent.id);
+      if (error) throw error;
+      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, event_date: editingEvent.date, start_time: editingEvent.time, title: editingEvent.title } : e));
+      showToast('Atualizado', 'Evento atualizado com sucesso!', 'success');
+      setEditingEvent(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Erro', 'Erro ao atualizar evento.', 'error');
+    }
+  };
+
+  const handleEditEventDelete = async () => {
+    if (!editingEvent) return;
+    if (confirm(`Deseja excluir "${editingEvent.title}"?`)) {
+      await deleteEvent(editingEvent.id);
+      setEditingEvent(null);
+    }
   };
 
   const today = new Date();
@@ -928,11 +955,15 @@ export default function PartnerDashboard() {
                     setEvents((prev: any[]) => prev.map(ev => ev.id === info.event.id ? { ...ev, event_date: dateStr, start_time: timeStr } : ev));
                     showToast('Atualizado', 'Evento reagendado!', 'success');
                   }}
-                  eventClick={async (info: any) => {
-                    if (confirm(`Deseja excluir "${info.event.title}"?`)) {
-                      await deleteEvent(info.event.id);
-                      info.event.remove();
-                    }
+                  eventClick={(info: any) => {
+                    const ev = info.event;
+                    const startDate = ev.start;
+                    setEditingEvent({
+                      id: ev.id,
+                      title: ev.title,
+                      date: startDate ? startDate.toISOString().substring(0, 10) : '',
+                      time: startDate ? startDate.toTimeString().substring(0, 5) : '00:00',
+                    });
                   }}
                   dateClick={(info: any) => {
                     const clickedDate = info.dateStr?.substring(0, 10) || '';
@@ -1456,6 +1487,41 @@ export default function PartnerDashboard() {
 
         </div>
       </div>
+
+      {/* EDIT EVENT MODAL */}
+      {editingEvent && (
+        <div className="modal-overlay open" onClick={() => setEditingEvent(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '420px'}}>
+            <div className="modal-head">
+              <div className="modal-title">Editar Agendamento</div>
+              <button className="dclose" onClick={() => setEditingEvent(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{marginBottom:'12px'}}>
+                <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Título</label>
+                <input className="f-inp" style={{width:'100%'}} value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} />
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div>
+                  <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Data *</label>
+                  <input className="f-inp" type="date" style={{width:'100%'}} value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} />
+                </div>
+                <div>
+                  <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--text)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Horário *</label>
+                  <input className="f-inp" type="time" style={{width:'100%'}} value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} />
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px',borderTop:'1px solid var(--b)'}}>
+              <button className="btn" style={{background:'transparent',border:'1px solid rgba(231,76,60,0.5)',color:'var(--red)'}} onClick={handleEditEventDelete}>🗑️ Excluir</button>
+              <div style={{display:'flex',gap:'8px'}}>
+                <button className="btn ghost" onClick={() => setEditingEvent(null)}>Cancelar</button>
+                <button className="btn gold" onClick={handleEditEventSave}>Salvar Alterações</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* NOVO PROJETO MODAL */}
       {isNewProjectOpen && (

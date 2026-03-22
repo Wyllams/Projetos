@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   // Event Modal
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [eventForm, setEventForm] = useState({ lead_id: '', date: '', time: '00:00', title: '' });
+  const [editingEvent, setEditingEvent] = useState<any>(null);
 
   // LP Modal
   const [isLPOpen, setIsLPOpen] = useState(false);
@@ -946,30 +947,64 @@ export default function AdminDashboard() {
   };
 
   const handleEventClick = async (info: any) => {
-    showConfirm(`Deseja excluir o agendamento "${info.event.title}"?`, async () => {
-      try {
-        if (info.event.extendedProps.is_google_native) {
-           const token = localStorage.getItem('google_provider_token');
-           if (!token) {
-              showToast("Conecte seu Google Calendar primeiro para excluir este evento.");
-              return;
-           }
-           const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${info.event.id}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` }
-           });
-           if (!resp.ok) throw new Error("Falha ao excluir no Google");
-           
-           setGoogleEvents(prev => prev.filter(e => e.id !== info.event.id));
-           info.event.remove();
-           showToast("Evento excluído do Google Calendar!");
-           return;
-        }
+    const ev = info.event;
+    const startDate = ev.start;
+    setEditingEvent({
+      id: ev.id,
+      title: ev.title,
+      date: startDate ? startDate.toISOString().substring(0, 10) : '',
+      time: startDate ? startDate.toTimeString().substring(0, 5) : '00:00',
+      is_google_native: ev.extendedProps?.is_google_native || false,
+    });
+  };
 
-        const { error } = await supabase.from('calendar_events').delete().eq('id', info.event.id);
+  const handleEditEventSave = async () => {
+    if (!editingEvent) return;
+    try {
+      if (editingEvent.is_google_native) {
+        showToast('Eventos do Google não podem ser editados aqui.');
+        return;
+      }
+      const { error } = await supabase.from('calendar_events').update({
+        event_date: editingEvent.date,
+        start_time: editingEvent.time,
+        title: editingEvent.title,
+      }).eq('id', editingEvent.id);
+      if (error) throw error;
+      setCalendarEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, event_date: editingEvent.date, start_time: editingEvent.time, title: editingEvent.title } : e));
+      showToast('Evento atualizado com sucesso!');
+      setEditingEvent(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Erro ao atualizar evento.');
+    }
+  };
+
+  const handleEditEventDelete = async () => {
+    if (!editingEvent) return;
+    showConfirm(`Deseja excluir o agendamento "${editingEvent.title}"?`, async () => {
+      try {
+        if (editingEvent.is_google_native) {
+          const token = localStorage.getItem('google_provider_token');
+          if (!token) {
+            showToast("Conecte seu Google Calendar primeiro para excluir este evento.");
+            return;
+          }
+          const resp = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${editingEvent.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!resp.ok) throw new Error("Falha ao excluir no Google");
+          setGoogleEvents(prev => prev.filter(e => e.id !== editingEvent.id));
+          showToast("Evento excluído do Google Calendar!");
+          setEditingEvent(null);
+          return;
+        }
+        const { error } = await supabase.from('calendar_events').delete().eq('id', editingEvent.id);
         if (error) throw error;
-        setCalendarEvents(prev => prev.filter(e => e.id !== info.event.id));
-        info.event.remove();
+        setCalendarEvents(prev => prev.filter(e => e.id !== editingEvent.id));
+        showToast('Evento excluído!');
+        setEditingEvent(null);
       } catch (err: any) {
         console.error(err);
         showToast("Erro ao excluir evento.");
@@ -2026,6 +2061,41 @@ export default function AdminDashboard() {
                 <button type="submit" className="btn gold">Confirmar Agendamento</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT EVENT MODAL */}
+      {editingEvent && (
+        <div className="modal-overlay open" onClick={() => setEditingEvent(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '420px'}}>
+            <div className="modal-head">
+              <div className="modal-title">Editar Agendamento</div>
+              <span className="modal-close" onClick={() => setEditingEvent(null)}>×</span>
+            </div>
+            <div className="modal-body">
+              <div style={{marginBottom:'12px'}}>
+                <label className="f-label">Título</label>
+                <input type="text" className="f-inp" value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} />
+              </div>
+              <div className="f-row">
+                <div>
+                  <label className="f-label">Data *</label>
+                  <input required type="date" className="f-inp" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
+                </div>
+                <div>
+                  <label className="f-label">Horário *</label>
+                  <input required type="time" className="f-inp" value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
+                </div>
+              </div>
+            </div>
+            <div className="modal-foot" style={{justifyContent:'space-between'}}>
+              <button type="button" className="btn" style={{background:'transparent',border:'1px solid rgba(231,76,60,0.5)',color:'var(--red)'}} onClick={handleEditEventDelete}>🗑️ Excluir</button>
+              <div style={{display:'flex',gap:'8px'}}>
+                <button type="button" className="btn ghost" onClick={() => setEditingEvent(null)}>Cancelar</button>
+                <button type="button" className="btn gold" onClick={handleEditEventSave}>Salvar Alterações</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
