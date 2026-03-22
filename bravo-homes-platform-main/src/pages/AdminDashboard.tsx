@@ -56,7 +56,7 @@ export default function AdminDashboard() {
   
   // New Lead Modal
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
-  const [newLeadForm, setNewLeadForm] = useState({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm' });
+  const [newLeadForm, setNewLeadForm] = useState({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm', estimated_value: '', partner_id: '' });
 
   // Event Modal
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
@@ -498,14 +498,17 @@ export default function AdminDashboard() {
     }).select().single();
 
     if (!clientErr && clientData) {
-      const { data: newLead, error } = await supabase.from('leads').insert({
+      const leadPayload: Record<string, unknown> = {
         client_id: clientData.id,
         service_type: newLeadForm.service_type,
         city: newLeadForm.city,
         source: 'manual-admin',
         status: 'new',
-        urgency: newLeadForm.urgency
-      }).select().single();
+        urgency: newLeadForm.urgency,
+      };
+      if (newLeadForm.estimated_value) leadPayload.estimated_value = parseFloat(newLeadForm.estimated_value);
+      if (newLeadForm.partner_id) leadPayload.partner_id = newLeadForm.partner_id;
+      const { data: newLead, error } = await supabase.from('leads').insert(leadPayload).select().single();
 
       if (!error && newLead) {
         // Manually update the UI state so it happens instantly even if Realtime is off
@@ -514,7 +517,7 @@ export default function AdminDashboard() {
         setClients(prev => prev.some(c => c.id === clientData.id) ? prev : [clientData, ...prev]);
         
         setIsNewLeadOpen(false);
-        setNewLeadForm({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm' });
+        setNewLeadForm({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm', estimated_value: '', partner_id: '' });
       } else {
         console.error('Error inserting lead:', error);
         showToast(`Erro ao criar Lead: ${error?.message || 'Erro desconhecido'}`);
@@ -1998,7 +2001,7 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="dlabel" style={{marginTop: '20px'}}>Outras Ações</div>
-                    <button className="btn ghost" style={{width: '100%', marginBottom: '10px'}} onClick={() => {
+                    <button className="btn ghost" style={{width: '100%', marginBottom: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px'}} onClick={() => {
                         const leadName = selectedLead.clients?.name || selectedLead.name || 'Desconhecido';
                         setEventForm({ lead_id: selectedLead.id, date: '', time: '00:00', title: `Vistoria: ${leadName}` });
                         setIsEventModalOpen(true);
@@ -2335,6 +2338,19 @@ export default function AdminDashboard() {
                       <option value="hot">🔥 Quente</option>
                       <option value="warm">☀️ Morno</option>
                       <option value="cool">❄️ Frio</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="f-row">
+                  <div>
+                    <label className="f-label">Valor Estimado ($)</label>
+                    <input type="number" className="f-inp" placeholder="Ex: 35000" value={newLeadForm.estimated_value} onChange={e => setNewLeadForm({...newLeadForm, estimated_value: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="f-label">Parceiro Responsável</label>
+                    <select className="f-inp" value={newLeadForm.partner_id} onChange={e => setNewLeadForm({...newLeadForm, partner_id: e.target.value})}>
+                      <option value="">Nenhum (não atribuir)</option>
+                      {partners.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email || 'Parceiro'}</option>)}
                     </select>
                   </div>
                 </div>

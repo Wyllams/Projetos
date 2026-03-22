@@ -28,7 +28,7 @@ export interface Client {
 export interface Lead {
   id: string;
   name?: string;
-  status: 'new' | 'contacted' | 'qualified' | 'scheduling' | 'proposal' | 'won' | 'lost';
+  status: string;
   service_type?: string;
   source?: string;
   notes?: string;
@@ -37,6 +37,8 @@ export interface Lead {
   city?: string;
   partner_id?: string;
   client_id?: string;
+  urgency?: string;
+  assigned_partners?: string[];
   created_at?: string;
   updated_at?: string;
   clients?: Client;
@@ -59,10 +61,14 @@ export interface Project {
 
 export interface Partner {
   id: string;
+  full_name?: string;
   name?: string;
   email?: string;
   phone?: string;
   specialization?: string;
+  specialty?: string;
+  city?: string;
+  state?: string;
   status?: string;
   rating?: number;
   completed_projects?: number;
@@ -103,8 +109,11 @@ export interface LandingPage {
   city?: string;
   slug?: string;
   visits?: number;
+  visitors?: number;
   conversions?: number;
+  leads_count?: number;
   is_active?: boolean;
+  status?: string;
   created_at?: string;
 }
 
