@@ -43,7 +43,6 @@ async def create_client(qualification: dict) -> Optional[str]:
         "phone": "",
         "city": qualification.get("city", "Atlanta Metro, GA"),
         "state": "GA",
-        "notes": qualification.get("summary", ""),
     }
 
     try:
@@ -73,21 +72,21 @@ async def create_lead(client_id: str, qualification: dict) -> Optional[str]:
     Cria um Lead na tabela 'leads' do Supabase.
     Retorna o ID do lead criado ou None se falhar.
     """
-    # Mapear classificação para status do banco
-    status_map = {"hot": "qualified", "warm": "new"}
-    urgency_map = {"hot": "hot", "warm": "warm"}
-
     classificacao = qualification.get("classificacao", "warm")
+    lead_original = qualification.get("lead_original", {})
 
     # Montar notas completas em PT-BR
-    lead_original = qualification.get("lead_original", {})
+    emoji = "🔥" if classificacao == "hot" else "🟡"
     notas = (
-        f"📋 Qualificação automática (GPT-4o)\n"
+        f"{emoji} Qualificação Automática (GPT-4o)\n"
         f"{'='*40}\n\n"
         f"📝 Resumo:\n{qualification.get('summary', 'N/A')}\n\n"
         f"🔍 Notas de qualificação:\n{qualification.get('qualification_notes', 'N/A')}\n\n"
         f"💡 Ação recomendada:\n{qualification.get('recommended_action', 'N/A')}\n\n"
         f"{'='*40}\n"
+        f"📊 Classificação: {classificacao.upper()}\n"
+        f"💰 Budget estimado: ${qualification.get('estimated_budget', 0):,}\n"
+        f"📍 Cidade: {qualification.get('city', 'N/A')}\n"
         f"🌐 Idioma original: {qualification.get('original_language', 'en-US')}\n"
         f"📊 Confiança: {qualification.get('confidence', 0)}%\n"
         f"📍 Fonte: {lead_original.get('fonte', 'N/A')} → {lead_original.get('grupo_ou_pagina', 'N/A')}\n"
@@ -95,14 +94,14 @@ async def create_lead(client_id: str, qualification: dict) -> Optional[str]:
         f"📄 Texto original (trecho):\n\"{lead_original.get('texto_original', 'N/A')[:300]}\""
     )
 
+    # Montar service_type com cidade para exibição no dashboard
+    city = qualification.get("city", "Atlanta Metro, GA")
+    service_type = f"{qualification.get('service_type', 'General Remodel')} • {city}"
+
     payload = {
         "client_id": client_id,
-        "service_type": qualification.get("service_type", "General Remodel"),
-        "estimated_value": qualification.get("estimated_budget", 0),
-        "city": qualification.get("city", "Atlanta Metro, GA"),
-        "status": status_map.get(classificacao, "new"),
-        "urgency": urgency_map.get(classificacao, "warm"),
-        "source": lead_original.get("fonte", "agent"),
+        "name": qualification.get("client_name", "Unknown"),
+        "service_type": service_type,
         "notes": notas,
     }
 
