@@ -162,7 +162,7 @@ export default function AdminDashboard() {
 
   // Google Calendar States
   const [googleEvents, setGoogleEvents] = useState<any[]>([]);
-  const [isGoogleLinked, setIsGoogleLinked] = useState(false);
+  const [_isGoogleLinked, setIsGoogleLinked] = useState(false);
 
   // --- GOOGLE REST API HANDLERS ---
   const handleGoogleSync = async () => {
@@ -756,7 +756,7 @@ export default function AdminDashboard() {
     try {
       const filePath = `${user.id}/${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.\\-]/g, '_')}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { data: _uploadData, error: uploadError } = await supabase.storage
         .from('chat_attachments')
         .upload(filePath, file);
 
@@ -1037,9 +1037,9 @@ export default function AdminDashboard() {
   
   const totalLeadsWithSource = leads.length || 1;
   const sourceColors = ['var(--gold)', 'var(--blue)', 'var(--green)', 'var(--red)', 'var(--orange)', 'var(--purple)'];
-  const sourceElements = Object.entries(leadsPerSource)
+  const sourceElements = (Object.entries(leadsPerSource) as [string, number][])
     .sort((a, b) => b[1] - a[1])
-    .map(([source, count], idx) => {
+    .map(([source, count]: [string, number], idx: number) => {
        const color = sourceColors[idx % sourceColors.length];
        const percentage = Math.round((count / totalLeadsWithSource) * 100);
        const niceSourceName = source === 'manual-admin' ? 'Manual' : source;
