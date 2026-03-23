@@ -1,0 +1,73 @@
+/* FullCalendar Custom Styles — Bravo Homes Platform */
+
+/* Base calendar text */
+.fc { color: var(--text); font-family: 'Inter', sans-serif; }
+
+/* Toolbar buttons */
+.fc .fc-button-primary {
+  background: var(--bg3) !important;
+  border: 1px solid var(--b) !important;
+  color: var(--text) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.15s !important;
+}
+.fc .fc-button-primary:hover {
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+}
+.fc .fc-button-primary.fc-button-active,
+.fc .fc-button-primary:active {
+  background: var(--gd) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+}
+
+/* Toolbar title */
+.fc .fc-toolbar-title {
+  font-family: 'Syne', sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+}
+
+/* Column headers (day names) */
+.fc th { color: var(--t3); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+.fc thead th { border-bottom: 1px solid var(--b) !important; }
+
+/* Grid borders */
+.fc td,
+.fc th { border-color: var(--b) !important; }
+.fc .fc-scrollgrid { border-color: var(--b) !important; }
+
+/* Day cells */
+.fc .fc-daygrid-day { background: transparent !important; }
+.fc .fc-daygrid-day:hover { background: var(--bg3) !important; }
+.fc .fc-day-today { background: var(--gd) !important; }
+
+/* Events */
+.fc .fc-event {
+  background: var(--gd) !important;
+  border: 1px solid var(--gold) !important;
+  border-radius: 4px !important;
+  color: var(--gold) !important;
+  font-size: 0.72rem !important;
+  padding: 2px 4px !important;
+  cursor: pointer !important;
+}
+.fc .fc-event:hover {
+  background: rgba(201, 148, 58, 0.25) !important;
+}
+
+/* Time grid slots */
+.fc .fc-timegrid-slot { height: 35px; border-color: var(--b) !important; }
+
+/* Day number */
+.fc .fc-daygrid-day-number {
+  color: var(--text) !important;
+  font-size: 0.78rem !important;
+  padding: 4px 8px !important;
+}

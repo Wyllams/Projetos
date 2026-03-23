@@ -697,7 +697,7 @@ export default function PartnerDashboard() {
           </div>
         </div>
         <div className="sb-footer">
-          <div className="logout" style={{textAlign:'center'}} onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>
+          <div className="logout" style={{textAlign:'center'}} onClick={async () => { localStorage.removeItem('partnerActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}>
             🚪 {t('logout')}
           </div>
         </div>
@@ -1219,7 +1219,7 @@ export default function PartnerDashboard() {
                     <input ref={chatFileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="u-hide" onChange={e => sendChatFile(e.target.files)} />
                     <button className="btn ghost" style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0}} onClick={() => chatFileRef.current?.click()} title="Attach file">📎</button>
                     <button className={`btn ${isRecording ? 'gold' : 'ghost'}`} style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0,animation:isRecording ? 'pulse 1s infinite' : 'none'}} onClick={isRecording ? stopRecording : startRecording} title={isRecording ? 'Stop recording' : 'Record audio'}>🎤</button>
-                    <input className="chat-input" className="u-flex-1" placeholder={isRecording ? '🔴 Recording... click mic to stop' : 'Type your message...'} value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatMsg); }}} disabled={isRecording} />
+                    <input className="chat-input u-flex-1" placeholder={isRecording ? '🔴 Recording... click mic to stop' : 'Type your message...'} value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatMsg); }}} disabled={isRecording} />
                     <button className="btn gold" onClick={() => sendMessage(chatMsg)} disabled={isRecording || !chatMsg.trim()}>Send</button>
                   </div>
                 </div>

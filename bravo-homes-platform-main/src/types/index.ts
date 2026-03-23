@@ -1,4 +1,4 @@
-import { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 // ============================================
 // Database Table Types (Supabase)
@@ -151,6 +151,7 @@ export interface LocalNote {
   id: string;
   lead_id?: string;
   text: string;
+  date?: string;
   created_at: string;
 }
 

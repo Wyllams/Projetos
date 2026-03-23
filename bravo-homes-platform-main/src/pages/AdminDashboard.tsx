@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../lib/i18n';
-import type { Lang } from '../lib/i18n';
 import type { Project, Lead, Partner, Client, LandingPage, CalendarEvent, Message, Profile, EditingEvent, GoogleEvent, ChatPartner } from '../types';
 import type { User } from '@supabase/supabase-js';
 import {
@@ -15,16 +14,15 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
 import SettingsTab from '../components/admin/SettingsTab';
 import ChatPanel from '../components/admin/ChatPanel';
 import CalendarTab from '../components/admin/CalendarTab';
 import PartnersTab from '../components/admin/PartnersTab';
 import ClientsTab from '../components/admin/ClientsTab';
 import SocialMediaTab from '../components/admin/SocialMediaTab';
+import ToastContainer, { useToast } from '../components/admin/Toast';
+import ConfirmModal from '../components/admin/ConfirmModal';
+import NewProjectModal from '../components/admin/NewProjectModal';
 import './AdminDashboard.css';
 import '../styles/utilities.css';
 
@@ -58,7 +56,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   // Lead Modal
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [notesInput, setNotesInput] = useState('');
+  const [notesInput, setNotesInput] = useState('');
   
   // New Lead Modal
   const [isNewLeadOpen, setIsNewLeadOpen] = useState(false);
@@ -84,7 +82,7 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const [allChatMessages, setAllChatMessages] = useState<Message[]>([]);
+  const [allChatMessages, setAllChatMessages] = useState<{sender_id: string; receiver_id: string}[]>([]);
 
   // Media & Audio States
   const [isRecording, setIsRecording] = useState(false);
@@ -123,11 +121,7 @@ export default function AdminDashboard() {
   // Sidebar responsive
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t, lang, setLang } = useLanguage();
-  // Alert State (formerly Toast)
-  const [alertModal, setAlertModal] = useState({ show: false, msg: '' });
-  const showToast = (msg: string) => {
-    setAlertModal({ show: true, msg });
-  };
+  const { toasts, showToast, dismissToast } = useToast();
 
   // Confirm Modal State
   const [confirmModal, setConfirmModal] = useState<{ show: boolean, msg: string, onConfirm: () => void }>({ show: false, msg: '', onConfirm: () => {} });
@@ -400,7 +394,7 @@ export default function AdminDashboard() {
   };
 
   // Structured Notes State
-  const [localNotes, setLocalNotes] = useState<{id:string;lead_id?:string;text:string;created_at:string}[]>([]);
+  const [localNotes, setLocalNotes] = useState<{id:string;date?:string;text:string}[]>([]);
 
   // Google Calendar States
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
@@ -522,7 +516,7 @@ export default function AdminDashboard() {
              if (profile.phone) setAdminPhone(profile.phone);
          } else {
             // Se a tabela 'profiles' não existir, joga a foto salva nos metadados do auth
-            setUserProfile({ avatar_url: currentUser.user_metadata?.avatar_url, full_name: currentUser.user_metadata?.full_name });
+            setUserProfile({ id: currentUser.id, role: 'admin', avatar_url: currentUser.user_metadata?.avatar_url, full_name: currentUser.user_metadata?.full_name || 'Admin' } as Profile);
             if (profError) console.warn('Sem perfil público detectado:', profError.message);
          }
       }
@@ -581,7 +575,7 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const msg = payload.new as any;
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"partner_msg":true}');
-        if (prefs.partner_msg && msg.receiver_id === currentUser?.id) {
+        if (prefs.partner_msg && msg.receiver_id === user?.id) {
           sendBrowserNotif(
             '💬 Nova mensagem no chat',
             msg.content?.substring(0, 100) || 'Nova mensagem recebida',
@@ -622,7 +616,7 @@ export default function AdminDashboard() {
 
     const channel = supabase.channel('chat_messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        const msg = payload.new;
+        const msg = payload.new as Message;
         if ((msg.sender_id === user.id && msg.receiver_id === selectedChatUser.id) ||
             (msg.sender_id === selectedChatUser.id && msg.receiver_id === user.id)) {
           setMessages(prev => {
@@ -863,11 +857,11 @@ export default function AdminDashboard() {
     const allEvents = mapEventsForCalendar();
     const hasOverlap = allEvents.some(ev => {
       // Ignorar eventos de dia todo (eventos Google sem dateTime)
-      if (!ev.start || ev.start.length <= 10) return false; 
+      if (!ev.start || String(ev.start).length <= 10) return false; 
       
-      const evStart = new Date(ev.start);
+      const evStart = new Date(String(ev.start));
       // Se n tiver end estrito, default de 1h
-      const evEnd = ev.end ? new Date(ev.end) : new Date(evStart.getTime() + 60*60*1000);
+      const evEnd = ev.end ? new Date(String(ev.end)) : new Date(evStart.getTime() + 60*60*1000);
       
       // Há choque se novoInicio < eventFim E novoFim > eventInicio
       return newStart < evEnd && newEnd > evStart;
@@ -1069,7 +1063,7 @@ export default function AdminDashboard() {
       showToast('Fazendo upload da imagem...');
       
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${user!.id}-${Math.random()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from('chat_attachments').upload(filePath, file);
@@ -1080,7 +1074,7 @@ export default function AdminDashboard() {
       const { error: authError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
       if (authError) throw authError;
 
-      const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, avatar_url: publicUrl, full_name: adminName || user?.user_metadata?.full_name, role: 'admin' });
+      const { error: profileError } = await supabase.from('profiles').upsert({ id: user!.id, avatar_url: publicUrl, full_name: adminName || user?.user_metadata?.full_name, role: 'admin' });
       if (profileError) console.warn("Tabela profiles ausente. Salvando apenas na Auth:", profileError.message);
 
       setUserProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }));
@@ -1108,7 +1102,7 @@ export default function AdminDashboard() {
       const { error: authError } = await supabase.auth.updateUser(updates);
       if (authError) throw authError;
 
-      const { error: profileError } = await supabase.from('profiles').upsert({ id: user.id, full_name: adminName, phone: adminPhone, role: 'admin' });
+      const { error: profileError } = await supabase.from('profiles').upsert({ id: user!.id, full_name: adminName, phone: adminPhone, role: 'admin' });
       if (profileError) console.warn("Tabela profiles ausente:", profileError.message);
 
       setUserProfile((prev: any) => ({ ...prev, full_name: adminName }));
@@ -1360,7 +1354,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-body">
-      <nav className={`sb ${sidebarOpen ? 'open' : ''}`}>
+      <nav className={`sb ${sidebarOpen ? 'open' : ''}`} role="navigation" aria-label="Menu principal">
         <div className="sb-brand">
           <img src={theme === 'light' ? "/Logo atual Bravo.png" : "/Logo Fundo azul.jpeg"} alt="Bravo Homes Group" className="sb-logo" style={{background: 'transparent'}} />
           <div className="sb-sub">{t('adminDashboard')}</div>
@@ -1402,22 +1396,22 @@ export default function AdminDashboard() {
           <div className={navItemClass('settings')} onClick={() => navTo('settings')}><span className="ni-icon">⚙</span>{t('settings')}</div>
         </div>
         <div className="sb-footer">
-          <div className="logout" style={{textAlign:'center'}} onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>🚪 {t('logout')}</div>
+          <div className="logout" style={{textAlign:'center'}} onClick={async () => { localStorage.removeItem('adminActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}>🚪 {t('logout')}</div>
         </div>
       </nav>
       {/* Mobile sidebar backdrop */}
-      <div className={`sb-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+      <div className={`sb-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} aria-hidden="true"></div>
 
       <div className="main">
         <div className="topbar">
-          <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Abrir/fechar menu lateral">☰</button>
           <div className="topbar-title">{{'lp':t('topbarLandingPages'),'allleads':t('topbarAllLeads'),'adminchat':t('topbarChat'),'projects':t('topbarProjects'),'pipeline':t('topbarPipeline'),'calendar':t('topbarCalendar'),'partners':t('topbarPartners'),'clients':t('topbarClients'),'finances':t('topbarFinances'),'settings':t('topbarSettings'),'dashboard':t('topbarDashboard')}[activeTab] || activeTab.toUpperCase()}</div>
           <div className="topbar-actions"></div>
-          <div className="notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)} title="Notificações">
+          <button className="notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)} aria-label="Abrir notificações">
             🔔
             <div className={`notif-dot ${isNotifOpen ? 'on' : ''}`}></div>
-          </div>
-          <div className="theme-btn" onClick={toggleTheme} title="Alternar tema">{theme === 'dark' ? '🌙' : '☀️'}</div>
+          </button>
+          <button className="theme-btn" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>{theme === 'dark' ? '🌙' : '☀️'}</button>
         </div>
         
         {isNotifOpen && (
@@ -1434,6 +1428,19 @@ export default function AdminDashboard() {
           {/* DASHBOARD TAB */}
           {activeTab === 'dashboard' && (
             <div className="page active">
+              {loadingDb ? (
+                /* Skeleton loading state */
+                <>
+                  <div className="kpi-grid">
+                    {[1,2,3,4].map(i => <div key={i} className="skeleton skeleton-kpi"></div>)}
+                  </div>
+                  <div className="g2" style={{marginTop:'14px'}}>
+                    <div className="skeleton skeleton-card"></div>
+                    <div className="skeleton skeleton-card"></div>
+                  </div>
+                </>
+              ) : (
+                <>
               <div className="kpi-grid">
                 <div className="kpi gold"><div className="kl">Receita Total (Obras)</div><div className="kv">${totalRevenue.toLocaleString()}</div><div className="kc">Dos contratos assinados</div></div>
                 <div className="kpi blue"><div className="kl">Leads Ativos</div><div className="kv">{activeLeadsCount}</div><div className="kc">Total no painel</div></div>
@@ -1517,6 +1524,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1585,7 +1594,7 @@ export default function AdminDashboard() {
                  <button className="btn gold" onClick={handleCreateProject}>Novo Projeto</button>
               </div>
               <div className="card">
-                <div className="cb" className="u-p-0">
+                <div className="cb u-p-0">
                   <table className="tbl">
                     <thead><tr><th>Cliente</th><th>Serviço</th><th>Valor</th><th>Progresso</th><th>Status</th><th style={{textAlign:'center'}}>Ação</th></tr></thead>
                     <tbody>
@@ -1601,7 +1610,7 @@ export default function AdminDashboard() {
                           <td><span className={`status-b ${p.status === 'active' ? 'sb-active' : ''}`}>{p.status || 'ND'}</span></td>
                           <td>
                             <div style={{display:'flex',gap:'12px',justifyContent:'center',alignItems:'center'}}>
-                              <button className="btn ghost" className="u-btn-pill" onClick={() => {
+                              <button className="btn ghost u-btn-pill" onClick={() => {
                                 setNewProjectForm({ name: p.name || '', service_type: p.service_type || '', contract_value: String(p.contract_value || ''), deadline: p.deadline || '', start_date: (p as any).start_date || '', client_id: (p as any).client_id || '' });
                                 setEditingProjectId(p.id);
                                 setIsNewProjectOpen(true);
@@ -1656,7 +1665,7 @@ export default function AdminDashboard() {
                 <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Lead</button>
               </div>
               <div className="card">
-                <div className="cb" className="u-p-0">
+                <div className="cb u-p-0">
                   <table className="tbl">
                     <thead><tr><th>Lead / Cliente</th><th>Serviço / Cidade</th><th>Valor</th><th>Temperatura</th><th>Status</th><th>Criado em</th><th></th></tr></thead>
                     <tbody>
@@ -1671,7 +1680,7 @@ export default function AdminDashboard() {
                             {l.urgency === 'cool' && <span className="urg cool">FRIO</span>}
                           </td>
                           <td><span className="status-b sb-draft">{l.status}</span></td>
-                          <td><div style={{fontSize:'0.75rem',color:'var(--text)'}}>{new Date(l.created_at).toLocaleDateString('pt-BR')}<br/><span style={{color:'var(--t2)'}}>{new Date(l.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span></div></td>
+                          <td><div style={{fontSize:'0.75rem',color:'var(--text)'}}>{new Date(l.created_at || '').toLocaleDateString('pt-BR')}<br/><span style={{color:'var(--t2)'}}>{new Date(l.created_at || '').toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span></div></td>
                           <td onClick={e => e.stopPropagation()}>
                             <button className="btn ghost" style={{padding:'4px 8px',fontSize:'.85rem',color:'var(--red)'}} onClick={async () => {
                               showConfirm(`Deseja excluir o lead "${l.clients?.name || l.name}"?`, async () => {
@@ -1699,24 +1708,24 @@ export default function AdminDashboard() {
                 <button className="btn gold" onClick={() => setIsLPOpen(true)}>+ Nova LP</button>
               </div>
               <div className="card">
-                <div className="cb" className="u-p-0">
+                <div className="cb u-p-0">
                   <table className="tbl">
                     <thead><tr><th style={{width:'18%'}}>Página (Cidade)</th><th style={{width:'12%'}}>Status</th><th style={{width:'14%'}}>Visitantes</th><th style={{width:'14%'}}>Leads Gerados</th><th style={{width:'14%'}}>Conversão</th><th style={{width:'28%',textAlign:'center'}}>Ação</th></tr></thead>
                     <tbody>
                       {landingPages.length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhuma LP encontrada.</td></tr>}
                       {landingPages.map(lp => {
-                        const convRate = lp.visitors > 0 ? Math.round((lp.leads_count / lp.visitors) * 100) : 0;
+                        const convRate = (lp.visitors ?? 0) > 0 ? Math.round(((lp.leads_count ?? 0) / (lp.visitors ?? 1)) * 100) : 0;
                         return (
                           <tr key={lp.id}>
                             <td><b>{lp.name}</b><div style={{fontSize:'0.7rem',color:'var(--t2)'}}>{lp.city}</div></td>
-                            <td><span className={`status-b ${lp.status === 'live' ? 'sb-live' : 'sb-draft'}`} style={{cursor: 'pointer'}} title="Clique para alternar o status" onClick={() => toggleLPStatus(lp)}>{lp.status.toUpperCase()}</span></td>
+                            <td><span className={`status-b ${lp.status === 'live' ? 'sb-live' : 'sb-draft'}`} style={{cursor: 'pointer'}} title="Clique para alternar o status" onClick={() => toggleLPStatus(lp)}>{(lp.status || 'draft').toUpperCase()}</span></td>
                             <td>{lp.visitors}</td>
                             <td>{lp.leads_count}</td>
                             <td><div style={{fontFamily:"'DM Mono',monospace",color:'var(--green)'}}>{convRate}%</div></td>
                             <td>
                               <div style={{display:'flex', gap:'12px', justifyContent:'center', alignItems:'center'}}>
                                 <button className="btn ghost" style={{padding:'6px 14px',fontSize:'.75rem'}} onClick={() => {
-                                  navigator.clipboard.writeText(`https://bravohomes.com/lp/${lp.city.toLowerCase().replace(/\\s+/g, '-')}`);
+                                  navigator.clipboard.writeText(`https://bravohomes.com/lp/${(lp.city || '').toLowerCase().replace(/\\s+/g, '-')}`);
                                   showToast('Link da LP copiado para a área de transferência!');
                                 }}>Link</button>
                                 <button className="btn ghost" style={{padding:'6px 14px',fontSize:'.75rem'}} onClick={() => showToast('Construtor visual de LP em breve!')}>Editar</button>
@@ -1769,7 +1778,7 @@ export default function AdminDashboard() {
             <div className="page active">
               <div style={{marginBottom:16}}><div className="u-syne-title">Financeiro</div></div>
               <div className="g3">
-                 <div className="kpi"><div className="kl">Faturamento Bruto</div><div className="kv" className="u-text-gold">${grossRevenue.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
+                 <div className="kpi"><div className="kl">Faturamento Bruto</div><div className="kv u-text-gold">${grossRevenue.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
                  <div className="kpi"><div className="kl">A Receber</div><div className="kv">${toReceive.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
                  <div className="kpi"><div className="kl">Pago aos Parceiros</div><div className="kv">${paidToPartners.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
               </div>
@@ -1851,7 +1860,7 @@ export default function AdminDashboard() {
                   title="Clique para editar o nome"
                 />
               </div>
-              <button className="dclose" style={{marginTop: '-8px'}} onClick={() => setSelectedLead(null)}>✕</button>
+              <button className="dclose" aria-label="Fechar" style={{marginTop: '-8px'}} onClick={() => setSelectedLead(null)}>✕</button>
             </div>
             <div className="modal-body" style={{display: 'flex', gap: '20px'}}>
               <div className="u-flex-1">
@@ -1861,16 +1870,16 @@ export default function AdminDashboard() {
                   <div className="dfield">
                     <div className="dlabel">Valor Est.</div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-                      <span className="dval big" className="u-text-gold">$</span>
+                      <span className="dval big u-text-gold">$</span>
                       <input 
                         type="number"
                         className="dval big" 
                         title="Clique para editar o valor"
                         style={{color: 'var(--gold)', background: 'transparent', border: 'none', borderBottom: '1px dashed var(--t3)', width: '100px', outline: 'none', padding: 0}}
                         value={selectedLead.estimated_value || ''}
-                        onChange={e => setSelectedLead({...selectedLead, estimated_value: e.target.value ? parseFloat(e.target.value) : null})}
+                        onChange={e => setSelectedLead({...selectedLead, estimated_value: e.target.value ? parseFloat(e.target.value) : undefined})}
                         onBlur={async () => {
-                           const val = parseFloat(selectedLead.estimated_value);
+                           const val = parseFloat(String(selectedLead.estimated_value ?? ''));
                            if (!isNaN(val)) await updateLead(selectedLead.id, { estimated_value: val });
                         }}
                         placeholder="N/D"
@@ -2018,15 +2027,15 @@ export default function AdminDashboard() {
       {/* EVENT MODAL */}
       {isEventModalOpen && (
         <div className="modal-overlay open" onClick={() => setIsEventModalOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
+          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
             <div className="modal-head">
               <div className="modal-title">{eventForm.lead_id && selectedLead ? `Agendar Vistoria: ${selectedLead.clients?.name || selectedLead.name}` : 'Criar Novo Agendamento'}</div>
-              <button className="dclose" onClick={() => setIsEventModalOpen(false)}>✕</button>
+              <button className="dclose" aria-label="Fechar" onClick={() => setIsEventModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleEventSubmit}>
               <div className="modal-body">
                 {(!eventForm.lead_id || !selectedLead) && (
-                  <div className="f-row" className="u-mb-15">
+                  <div className="f-row u-mb-15">
                     <div className="u-w-full">
                       <label className="f-label">Selecionar Lead / Cliente *</label>
                       <select required className="f-inp" value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
@@ -2097,10 +2106,10 @@ export default function AdminDashboard() {
       {/* LP MODAL */}
       {isLPOpen && (
         <div className="modal-overlay open" onClick={() => setIsLPOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
+          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
             <div className="modal-head">
               <div className="modal-title">Nova Landing Page</div>
-              <button className="dclose" onClick={() => setIsLPOpen(false)}>✕</button>
+              <button className="dclose" aria-label="Fechar" onClick={() => setIsLPOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleLPSubmit}>
               <div className="modal-body">
@@ -2129,10 +2138,10 @@ export default function AdminDashboard() {
       {/* PARTNER MODAL */}
       {isPartnerOpen && (
         <div className="modal-overlay open" onClick={() => setIsPartnerOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
+          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
             <div className="modal-head">
               <div className="modal-title">Novo Parceiro / Contratado</div>
-              <button className="dclose" onClick={() => setIsPartnerOpen(false)}>✕</button>
+              <button className="dclose" aria-label="Fechar" onClick={() => setIsPartnerOpen(false)}>✕</button>
             </div>
             <form onSubmit={handlePartnerSubmit}>
               <div className="modal-body">
@@ -2186,7 +2195,7 @@ export default function AdminDashboard() {
           <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '520px'}}>
             <div className="modal-head">
               <div className="modal-title">Perfil do Parceiro</div>
-              <button className="dclose" onClick={() => { setSelectedPartner(null); setEditPartner(null); }}>✕</button>
+              <button className="dclose" aria-label="Fechar" onClick={() => { setSelectedPartner(null); setEditPartner(null); }}>✕</button>
             </div>
             <div className="modal-body">
               <div style={{display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px'}}>
@@ -2202,13 +2211,13 @@ export default function AdminDashboard() {
               
               {editPartner ? (
                 <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
-                  <div className="f-row" className="u-flex-gap-10">
+                  <div className="f-row u-flex-gap-10">
                     <div className="u-flex-1">
                       <label className="f-label">Nome *</label>
                       <input className="f-inp" value={editPartner.full_name || ''} onChange={e => setEditPartner({...editPartner, full_name: e.target.value})} />
                     </div>
                   </div>
-                  <div className="f-row" className="u-flex-gap-10">
+                  <div className="f-row u-flex-gap-10">
                     <div className="u-flex-1">
                       <label className="f-label">Telefone</label>
                       <input className="f-inp" placeholder="(000) 000-0000" value={editPartner.phone || ''} onChange={e => setEditPartner({...editPartner, phone: e.target.value})} />
@@ -2218,7 +2227,7 @@ export default function AdminDashboard() {
                       <input className="f-inp" placeholder="Ex: Marietta, GA" value={editPartner.city || ''} onChange={e => setEditPartner({...editPartner, city: e.target.value})} />
                     </div>
                   </div>
-                  <div className="f-row" className="u-flex-gap-10">
+                  <div className="f-row u-flex-gap-10">
                     <div className="u-flex-1">
                       <label className="f-label">Especialidade</label>
                       <input className="f-inp" placeholder="Ex: Piso, Elétrica" value={editPartner.specialty || ''} onChange={e => setEditPartner({...editPartner, specialty: e.target.value})} />
@@ -2303,7 +2312,7 @@ export default function AdminDashboard() {
           <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
             <div className="modal-head">
               <div className="modal-title">Cadastrar Novo Lead Manual</div>
-              <button className="dclose" onClick={() => setIsNewLeadOpen(false)}>✕</button>
+              <button className="dclose" aria-label="Fechar" onClick={() => setIsNewLeadOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleNewLeadSubmit}>
               <div className="modal-body">
@@ -2358,115 +2367,29 @@ export default function AdminDashboard() {
       )}
 
       {/* CONFIRM MODAL */}
-      {confirmModal.show && (
-        <div className="modal-overlay open" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '400px', textAlign: 'center'}}>
-            <div className="modal-head" style={{justifyContent: 'center', borderBottom: 'none', paddingBottom: '0'}}>
-              <div className="modal-title" className="u-text-gold">Bravo Homes Group</div>
-            </div>
-            <div className="modal-body" style={{fontSize: '1.05rem', lineHeight: '1.5', padding: '10px 22px 30px'}}>
-              {confirmModal.msg}
-            </div>
-            <div className="modal-foot" style={{justifyContent: 'center', gap: '16px', borderTop: 'none', paddingTop: '0', paddingBottom: '24px'}}>
-              <button className="btn ghost" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>Cancelar</button>
-              <button className="btn" style={{background: 'var(--red)', color: '#fff'}} onClick={() => {
-                confirmModal.onConfirm();
-                setConfirmModal(prev => ({ ...prev, show: false }));
-              }}>Confirmar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        show={confirmModal.show}
+        msg={confirmModal.msg}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+      />
 
-      {/* ALERT MODAL (formerly Toast) */}
-      {alertModal.show && (
-        <div className="modal-overlay open" onClick={() => setAlertModal({ show: false, msg: '' })}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '400px', textAlign: 'center'}}>
-            <div className="modal-head" style={{justifyContent: 'center', borderBottom: 'none', paddingBottom: '0'}}>
-              <div className="modal-title" className="u-text-gold">Bravo Homes Group</div>
-            </div>
-            <div className="modal-body" style={{fontSize: '1.05rem', lineHeight: '1.5', padding: '10px 22px 30px', color: 'var(--text)'}}>
-              {alertModal.msg}
-            </div>
-            <div className="modal-foot" style={{justifyContent: 'center', borderTop: 'none', paddingTop: '0', paddingBottom: '24px'}}>
-              <button className="btn gold" onClick={() => setAlertModal({ show: false, msg: '' })}>OK</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* NOVO PROJETO MODAL */}
-      {isNewProjectOpen && (
-        <div className="modal-overlay open" onClick={() => setIsNewProjectOpen(false)}>
-          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{editingProjectId ? 'Editar Projeto' : 'Criar Novo Projeto'}</div>
-              <button className="dclose" onClick={() => setIsNewProjectOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={submitProjectForm}>
-              <div className="modal-body">
-                {/* Cliente */}
-                <div style={{marginBottom:'15px'}}>
-                  <label className="f-label">Cliente</label>
-                  <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
-                    <button type="button" className="btn ghost" style={{flex:1,padding:'6px 10px',fontSize:'0.75rem', ...(projectClientMode === 'existing' ? {background:'rgba(201,148,58,0.15)',borderColor:'var(--gold)'} : {})}} onClick={() => setProjectClientMode('existing')}>Selecionar Existente</button>
-                    <button type="button" className="btn ghost" style={{flex:1,padding:'6px 10px',fontSize:'0.75rem', ...(projectClientMode === 'new' ? {background:'rgba(201,148,58,0.15)',borderColor:'var(--gold)'} : {})}} onClick={() => setProjectClientMode('new')}>Criar Novo</button>
-                  </div>
-                  {projectClientMode === 'existing' ? (
-                    <select className="f-inp" value={newProjectForm.client_id} onChange={e => setNewProjectForm({...newProjectForm, client_id: e.target.value})}>
-                      <option value="">— Selecionar cliente —</option>
-                      {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  ) : (
-                    <input type="text" className="f-inp" placeholder="Nome do novo cliente" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-                  )}
-                </div>
+      {/* TOAST CONTAINER — auto-dismissing, non-blocking */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-                {/* Nome do Projeto */}
-                <div style={{marginBottom:'15px'}}>
-                  <label className="f-label">Nome do Projeto *</label>
-                  <input required type="text" className="f-inp" placeholder="Ex: Reforma Johnson" value={newProjectForm.name} onChange={e => setNewProjectForm({...newProjectForm, name: e.target.value})} />
-                </div>
-
-                {/* Tipo de Serviço */}
-                <div style={{marginBottom:'15px'}}>
-                  <label className="f-label">Tipo de Serviço *</label>
-                  <select required className="f-inp" value={newProjectForm.service_type} onChange={e => setNewProjectForm({...newProjectForm, service_type: e.target.value})}>
-                    <option value="Reforma Completa">Reforma Completa</option>
-                    <option value="Bathroom Remodel">Bathroom Remodel</option>
-                    <option value="Kitchen Remodel">Kitchen Remodel</option>
-                    <option value="Pintura e Acabamento">Pintura e Acabamento</option>
-                    <option value="Deck / Patio">Deck / Patio</option>
-                    <option value="Flooring">Flooring</option>
-                    <option value="Outro">Outro</option>
-                  </select>
-                </div>
-
-                {/* Valor + Datas */}
-                <div style={{display:'flex',gap:'10px',marginBottom:'15px'}}>
-                  <div style={{flex:1}}>
-                    <label className="f-label">Valor ($)</label>
-                    <input type="number" className="f-inp" placeholder="25000" value={newProjectForm.contract_value} onChange={e => setNewProjectForm({...newProjectForm, contract_value: e.target.value})} />
-                  </div>
-                  <div style={{flex:1}}>
-                    <label className="f-label">Data Início</label>
-                    <input type="date" className="f-inp" value={newProjectForm.start_date} onChange={e => setNewProjectForm({...newProjectForm, start_date: e.target.value})} />
-                  </div>
-                  <div style={{flex:1}}>
-                    <label className="f-label">Prazo Entrega</label>
-                    <input type="date" className="f-inp" value={newProjectForm.deadline} onChange={e => setNewProjectForm({...newProjectForm, deadline: e.target.value})} />
-                  </div>
-                </div>
-
-                {/* Botões */}
-                <div style={{display:'flex',gap:'10px',justifyContent:'center',marginTop:'20px'}}>
-                   <button type="button" className="btn ghost" style={{padding:'8px 24px',fontSize:'0.8rem'}} onClick={() => setIsNewProjectOpen(false)}>Cancelar</button>
-                   <button type="submit" className="btn gold" style={{padding:'8px 24px',fontSize:'0.8rem'}}>{editingProjectId ? 'Salvar' : 'Criar Projeto'}</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <NewProjectModal
+        isOpen={isNewProjectOpen}
+        onClose={() => setIsNewProjectOpen(false)}
+        onSubmit={submitProjectForm}
+        form={newProjectForm}
+        setForm={setNewProjectForm}
+        editingProjectId={editingProjectId}
+        clients={clients}
+        projectClientMode={projectClientMode}
+        setProjectClientMode={setProjectClientMode}
+        newClientName={newClientName}
+        setNewClientName={setNewClientName}
+      />
 
     </div>
   );
