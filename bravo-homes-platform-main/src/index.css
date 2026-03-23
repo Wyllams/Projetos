@@ -12,3 +12,9 @@
 button, a, select, input[type="submit"], input[type="button"], input[type="checkbox"], input[type="radio"], [role="button"], .card, .profile-card, li[onClick], div[onClick] {
   cursor: pointer !important;
 }
+
+/* Visible scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(201,148,58,0.5); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,148,58,0.8); }
