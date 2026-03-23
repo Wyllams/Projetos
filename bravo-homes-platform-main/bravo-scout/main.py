@@ -26,6 +26,7 @@ from scrapers.facebook_groups import scrape_facebook_groups
 from scrapers.google_maps import scrape_google_maps
 from scrapers.twitter import scrape_twitter
 from scrapers.nextdoor import scrape_nextdoor
+from scrapers.apify_scrapers import scrape_google_maps_apify
 
 load_dotenv()
 
@@ -53,16 +54,10 @@ async def run_scan():
     stats["total_scans"] += 1
     all_raw_leads = []
 
-    # 1. Executar scrapers (apenas os que funcionam de cloud IPs)
+    # 1. Executar scrapers
     scrapers = [
-        # ("Craigslist RSS", scrape_craigslist),           # 403 Blocked from cloud IPs
         ("Reddit RSS", scrape_reddit),
-        ("Yelp API", scrape_yelp_reviews),
-        # DESATIVADOS — bloqueados de cloud IPs:
-        # ("Facebook Groups", scrape_facebook_groups),    # Exige login
-        # ("Google Maps Reviews", scrape_google_maps),    # Google CAPTCHA
-        # ("Twitter/X", scrape_twitter),                  # Nitter morto
-        # ("Nextdoor", scrape_nextdoor),                  # Google CAPTCHA
+        ("Google Maps Reviews (Apify)", scrape_google_maps_apify),
     ]
 
     for name, scraper_fn in scrapers:
