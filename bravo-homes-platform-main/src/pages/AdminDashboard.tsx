@@ -318,34 +318,50 @@ export default function AdminDashboard() {
   };
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [newProjectForm, setNewProjectForm] = useState({ name: '', service_type: 'Reforma', contract_value: '', deadline: '' });
+  const [newProjectForm, setNewProjectForm] = useState({ name: '', service_type: 'Reforma', contract_value: '', deadline: '', start_date: '', client_id: '' });
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [projectClientMode, setProjectClientMode] = useState<'existing' | 'new'>('existing');
+  const [newClientName, setNewClientName] = useState('');
 
   const handleCreateProject = () => {
     setEditingProjectId(null);
-    setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '' });
+    setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '', start_date: '', client_id: '' });
+    setProjectClientMode('existing');
+    setNewClientName('');
     setIsNewProjectOpen(true);
   };
 
   const submitProjectForm = async (e: any) => {
     e.preventDefault();
-    const { name, service_type, contract_value, deadline } = newProjectForm;
+    const { name, service_type, contract_value, deadline, start_date, client_id } = newProjectForm;
+
+    // Handle new client creation if needed
+    let finalClientId = client_id;
+    if (projectClientMode === 'new' && newClientName.trim()) {
+      const { data: newClient } = await supabase.from('clients').insert({ name: newClientName.trim(), state: 'GA' }).select().single();
+      if (newClient) {
+        finalClientId = newClient.id;
+        setClients(prev => [...prev, newClient]);
+      }
+    }
     
     if (editingProjectId) {
       const { error } = await supabase.from('projects').update({ 
         name, 
         service_type: service_type || 'Reforma Residencial', 
         contract_value: contract_value ? parseInt(contract_value) : 0,
-        deadline: deadline || null
+        deadline: deadline || null,
+        start_date: start_date || null,
+        client_id: finalClientId || null
       }).eq('id', editingProjectId);
       if (error) {
         showToast('Erro ao atualizar projeto: ' + error.message);
       } else {
         showToast('Projeto atualizado com sucesso!');
-        setProjects(prev => prev.map(p => p.id === editingProjectId ? { ...p, name, service_type, contract_value: contract_value ? parseInt(contract_value) : 0, deadline } : p));
+        setProjects(prev => prev.map(p => p.id === editingProjectId ? { ...p, name, service_type, contract_value: contract_value ? parseInt(contract_value) : 0, deadline, start_date, client_id: finalClientId } : p));
         setIsNewProjectOpen(false);
         setEditingProjectId(null);
-        setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '' });
+        setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '', start_date: '', client_id: '' });
       }
     } else {
       const { error } = await supabase.from('projects').insert([{ 
@@ -354,15 +370,16 @@ export default function AdminDashboard() {
         status: 'active', 
         progress: 0,
         contract_value: contract_value ? parseInt(contract_value) : 0,
-        deadline: deadline || null
+        deadline: deadline || null,
+        start_date: start_date || null,
+        client_id: finalClientId || null
       }]);
       if (error) {
         showToast('Erro ao criar projeto: ' + error.message);
       } else {
         showToast('Projeto criado com sucesso!');
         setIsNewProjectOpen(false);
-        setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '' });
-        // Refresh projects list from database
+        setNewProjectForm({ name: '', service_type: 'Reforma', contract_value: '', deadline: '', start_date: '', client_id: '' });
         const { data: refreshed } = await supabase.from('projects').select('*');
         if (refreshed) setProjects(refreshed);
       }
@@ -1575,7 +1592,7 @@ export default function AdminDashboard() {
                           <td>
                             <div style={{display:'flex',gap:'12px',justifyContent:'center',alignItems:'center'}}>
                               <button className="btn ghost" className="u-btn-pill" onClick={() => {
-                                setNewProjectForm({ name: p.name || '', service_type: p.service_type || '', contract_value: String(p.contract_value || ''), deadline: p.deadline || '' });
+                                setNewProjectForm({ name: p.name || '', service_type: p.service_type || '', contract_value: String(p.contract_value || ''), deadline: p.deadline || '', start_date: (p as any).start_date || '', client_id: (p as any).client_id || '' });
                                 setEditingProjectId(p.id);
                                 setIsNewProjectOpen(true);
                               }}>✏️ Editar</button>
@@ -2809,44 +2826,70 @@ export default function AdminDashboard() {
       {/* NOVO PROJETO MODAL */}
       {isNewProjectOpen && (
         <div className="modal-overlay open" onClick={() => setIsNewProjectOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} className="u-modal-md">
+          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
             <div className="modal-head">
               <div className="modal-title">{editingProjectId ? 'Editar Projeto' : 'Criar Novo Projeto'}</div>
               <button className="dclose" onClick={() => setIsNewProjectOpen(false)}>✕</button>
             </div>
             <form onSubmit={submitProjectForm}>
               <div className="modal-body">
-                <div className="f-row" className="u-mb-15">
-                  <div className="u-w-full">
-                    <label className="f-label">Nome do Projeto *</label>
-                    <input required type="text" className="f-inp" placeholder="Ex: Reforma Johnson" value={newProjectForm.name} onChange={e => setNewProjectForm({...newProjectForm, name: e.target.value})} />
+                {/* Cliente */}
+                <div style={{marginBottom:'15px'}}>
+                  <label className="f-label">Cliente</label>
+                  <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                    <button type="button" className="btn ghost" style={{flex:1,padding:'6px 10px',fontSize:'0.75rem', ...(projectClientMode === 'existing' ? {background:'rgba(201,148,58,0.15)',borderColor:'var(--gold)'} : {})}} onClick={() => setProjectClientMode('existing')}>Selecionar Existente</button>
+                    <button type="button" className="btn ghost" style={{flex:1,padding:'6px 10px',fontSize:'0.75rem', ...(projectClientMode === 'new' ? {background:'rgba(201,148,58,0.15)',borderColor:'var(--gold)'} : {})}} onClick={() => setProjectClientMode('new')}>Criar Novo</button>
                   </div>
-                </div>
-                <div className="f-row" className="u-mb-15">
-                  <div className="u-w-full">
-                    <label className="f-label">Tipo de Serviço *</label>
-                    <select required className="f-inp" value={newProjectForm.service_type} onChange={e => setNewProjectForm({...newProjectForm, service_type: e.target.value})}>
-                      <option value="Reforma Completa">Reforma Completa</option>
-                      <option value="Bathroom Remodel">Bathroom Remodel</option>
-                      <option value="Kitchen Remodel">Kitchen Remodel</option>
-                      <option value="Pintura e Acabamento">Pintura e Acabamento</option>
-                      <option value="Outro">Outro</option>
+                  {projectClientMode === 'existing' ? (
+                    <select className="f-inp" value={newProjectForm.client_id} onChange={e => setNewProjectForm({...newProjectForm, client_id: e.target.value})}>
+                      <option value="">— Selecionar cliente —</option>
+                      {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                  </div>
+                  ) : (
+                    <input type="text" className="f-inp" placeholder="Nome do novo cliente" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+                  )}
                 </div>
-                <div className="f-row" style={{marginBottom: '20px', display: 'flex', gap: '15px'}}>
-                  <div className="u-flex-1">
-                    <label className="f-label" style={{whiteSpace: 'nowrap'}}>Valor Estimado ($)</label>
-                    <input type="number" className="f-inp" placeholder="Ex: 25000" value={newProjectForm.contract_value} onChange={e => setNewProjectForm({...newProjectForm, contract_value: e.target.value})} />
+
+                {/* Nome do Projeto */}
+                <div style={{marginBottom:'15px'}}>
+                  <label className="f-label">Nome do Projeto *</label>
+                  <input required type="text" className="f-inp" placeholder="Ex: Reforma Johnson" value={newProjectForm.name} onChange={e => setNewProjectForm({...newProjectForm, name: e.target.value})} />
+                </div>
+
+                {/* Tipo de Serviço */}
+                <div style={{marginBottom:'15px'}}>
+                  <label className="f-label">Tipo de Serviço *</label>
+                  <select required className="f-inp" value={newProjectForm.service_type} onChange={e => setNewProjectForm({...newProjectForm, service_type: e.target.value})}>
+                    <option value="Reforma Completa">Reforma Completa</option>
+                    <option value="Bathroom Remodel">Bathroom Remodel</option>
+                    <option value="Kitchen Remodel">Kitchen Remodel</option>
+                    <option value="Pintura e Acabamento">Pintura e Acabamento</option>
+                    <option value="Deck / Patio">Deck / Patio</option>
+                    <option value="Flooring">Flooring</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+
+                {/* Valor + Datas */}
+                <div style={{display:'flex',gap:'10px',marginBottom:'15px'}}>
+                  <div style={{flex:1}}>
+                    <label className="f-label">Valor ($)</label>
+                    <input type="number" className="f-inp" placeholder="25000" value={newProjectForm.contract_value} onChange={e => setNewProjectForm({...newProjectForm, contract_value: e.target.value})} />
                   </div>
-                  <div className="u-flex-1">
-                    <label className="f-label" style={{whiteSpace: 'nowrap'}}>Prazo de Entrega</label>
+                  <div style={{flex:1}}>
+                    <label className="f-label">Data Início</label>
+                    <input type="date" className="f-inp" value={newProjectForm.start_date} onChange={e => setNewProjectForm({...newProjectForm, start_date: e.target.value})} />
+                  </div>
+                  <div style={{flex:1}}>
+                    <label className="f-label">Prazo Entrega</label>
                     <input type="date" className="f-inp" value={newProjectForm.deadline} onChange={e => setNewProjectForm({...newProjectForm, deadline: e.target.value})} />
                   </div>
                 </div>
-                <div style={{display: 'flex', gap: '15px', marginTop: '30px', justifyContent: 'center'}}>
-                   <button type="button" className="btn ghost" style={{flex: 1, padding: '12px', fontSize: '0.95rem', textAlign: 'center'}} onClick={() => setIsNewProjectOpen(false)}>Cancelar</button>
-                   <button type="submit" className="btn gold" style={{flex: 1, padding: '12px', fontSize: '0.95rem', textAlign: 'center'}}>Criar Projeto</button>
+
+                {/* Botões */}
+                <div style={{display:'flex',gap:'10px',justifyContent:'center',marginTop:'20px'}}>
+                   <button type="button" className="btn ghost" style={{padding:'8px 24px',fontSize:'0.8rem'}} onClick={() => setIsNewProjectOpen(false)}>Cancelar</button>
+                   <button type="submit" className="btn gold" style={{padding:'8px 24px',fontSize:'0.8rem'}}>{editingProjectId ? 'Salvar' : 'Criar Projeto'}</button>
                 </div>
               </div>
             </form>
