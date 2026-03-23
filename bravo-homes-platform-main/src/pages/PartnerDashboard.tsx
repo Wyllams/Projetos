@@ -434,10 +434,15 @@ export default function PartnerDashboard() {
   useEffect(() => {
     const channel = supabase.channel('messages-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
+        const msg = payload.new;
         setMessages(prev => {
-          if (prev.some((m: any) => m.id === payload.new.id)) return prev;
-          return [...prev, payload.new];
+          if (prev.some((m: any) => m.id === msg.id)) return prev;
+          return [...prev, msg];
         });
+        // Add in-app notification for messages received by this user
+        if (msg.receiver_id === user?.id) {
+          setNotifications(prev => [{ id: 'msg-' + msg.id, title: '💬 Nova mensagem', body: msg.content?.substring(0, 80) || 'Nova mensagem recebida', read: false, created_at: new Date().toISOString() }, ...prev]);
+        }
       })
       .subscribe();
 
@@ -746,7 +751,8 @@ export default function PartnerDashboard() {
                   <span style={{fontWeight:700,fontSize:'0.85rem'}}>🔔 Notificações</span>
                   {unreadCount > 0 && (
                     <button style={{fontSize:'0.65rem',color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontWeight:600}} onClick={async () => {
-                      await supabase.from('notifications').update({ read: true }).eq('user_id', user?.id).eq('read', false);
+                      const dbNotifs = notifications.filter(n => !n.read && typeof n.id === 'number');
+                      if (dbNotifs.length > 0) await supabase.from('notifications').update({ read: true }).eq('user_id', user?.id).eq('read', false);
                       setNotifications(prev => prev.map(n => ({...n, read: true})));
                     }}>Marcar todas como lidas</button>
                   )}
@@ -757,7 +763,7 @@ export default function PartnerDashboard() {
                   notifications.map((n: any) => (
                     <div key={n.id} onClick={async () => {
                       if (!n.read) {
-                        await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+                        if (typeof n.id === 'number') await supabase.from('notifications').update({ read: true }).eq('id', n.id);
                         setNotifications(prev => prev.map(x => x.id === n.id ? {...x, read: true} : x));
                       }
                     }} style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',cursor:'pointer',background: n.read ? 'transparent' : 'rgba(201,148,58,0.08)',transition:'all .2s'}}>

@@ -12,6 +12,11 @@ export default function ClientDashboard() {
   const [lightboxData, setLightboxData] = useState({ emoji: '', title: '', desc: '' });
   const { t } = useLanguage();
   
+  // Notifications
+  const [notifications, setNotifications] = useState<{id: string; type: string; title: string; body: string; time: Date; read: boolean}[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
   const [project, setProject] = useState<Project | null>(null);
   const [loadingDb, setLoadingDb] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -134,7 +139,39 @@ export default function ClientDashboard() {
 
 
           <span className="topbar-badge">Em Andamento</span>
-          <span className="topbar-date">Qua, 24 Março</span>
+          
+          {/* Notification Bell */}
+          <div style={{position:'relative',marginLeft:'auto'}}>
+            <button onClick={() => setNotifOpen(!notifOpen)} style={{background: notifOpen ? 'var(--gold)' : 'var(--bg3)',border:'1px solid var(--b)',borderRadius:'8px',width:36,height:36,cursor:'pointer',fontSize:'1rem',position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              🔔
+              {unreadCount > 0 && <span style={{position:'absolute',top:'-2px',right:'-2px',background:'var(--red)',color:'#fff',fontSize:'0.55rem',fontWeight:700,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}>{unreadCount}</span>}
+            </button>
+            {notifOpen && (
+              <div style={{position:'absolute',top:'100%',right:0,width:'320px',maxHeight:'350px',overflowY:'auto',background:'var(--bg2)',border:'1px solid var(--b)',borderRadius:'12px',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',zIndex:999,padding:'8px 0',marginTop:'8px'}}>
+                <div style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span style={{fontWeight:700,fontSize:'0.85rem'}}>🔔 Notificações</span>
+                  {unreadCount > 0 && <button style={{fontSize:'0.65rem',color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontWeight:600}} onClick={() => setNotifications(prev => prev.map(n => ({...n, read: true})))}>Marcar todas lidas</button>}
+                </div>
+                {notifications.length === 0 ? (
+                  <div style={{padding:'24px',textAlign:'center',color:'var(--t3)',fontSize:'0.8rem'}}>Sem notificações</div>
+                ) : (
+                  notifications.slice(0, 15).map(n => (
+                    <div key={n.id} onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? {...x, read: true} : x))} style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',cursor:'pointer',background: n.read ? 'transparent' : 'rgba(201,148,58,0.08)',transition:'all .2s'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{fontSize:'0.7rem'}}>{n.type}</span>
+                        {!n.read && <span style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}></span>}
+                      </div>
+                      <div style={{fontSize:'0.8rem',fontWeight: n.read ? 400 : 700,color:'var(--text)'}}>{n.title}</div>
+                      <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:2}}>{n.body}</div>
+                      <div style={{fontSize:'0.6rem',color:'var(--t3)',marginTop:4,fontFamily:"'DM Mono',monospace"}}>{n.time.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          <span className="topbar-date">{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
         </div>
 
         <div className="content">

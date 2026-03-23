@@ -45,6 +45,8 @@ export default function AdminDashboard() {
 
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{id: string; type: string; title: string; body: string; time: Date; read: boolean}[]>([]);
+  const unreadCount = notifications.filter(n => !n.read).length;
   
   const [projects, setProjects] = useState<Project[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -561,7 +563,7 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const newLead = payload.new as any;
         setLeads(prev => [newLead, ...prev]);
-        setIsNotifOpen(true);
+        setNotifications(prev => [{ id: 'lead-' + newLead.id, type: '🎯 Novo Lead', title: newLead.name || 'Lead', body: `${newLead.service_type || ''} — ${newLead.city || ''}`, time: new Date(), read: false }, ...prev]);
         // Browser push notification
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"new_lead":true}');
         if (prefs.new_lead) {
@@ -574,6 +576,9 @@ export default function AdminDashboard() {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const msg = payload.new as any;
+        if (msg.receiver_id === user?.id) {
+          setNotifications(prev => [{ id: 'msg-' + msg.id, type: '💬 Mensagem', title: 'Nova mensagem no chat', body: msg.content?.substring(0, 80) || 'Nova mensagem recebida', time: new Date(), read: false }, ...prev]);
+        }
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"partner_msg":true}');
         if (prefs.partner_msg && msg.receiver_id === user?.id) {
           sendBrowserNotif(
@@ -586,6 +591,7 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, (payload) => {
         const proj = payload.new as any;
         setProjects(prev => prev.map(p => p.id === proj.id ? proj : p));
+        setNotifications(prev => [{ id: 'proj-' + proj.id + '-' + Date.now(), type: '📋 Projeto', title: proj.name || 'Projeto', body: `Status: ${proj.status || 'atualizado'}`, time: new Date(), read: false }, ...prev]);
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"project_update":true}');
         if (prefs.project_update) {
           sendBrowserNotif(
@@ -1407,18 +1413,29 @@ export default function AdminDashboard() {
           <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Abrir/fechar menu lateral">☰</button>
           <div className="topbar-title">{{'lp':t('topbarLandingPages'),'allleads':t('topbarAllLeads'),'adminchat':t('topbarChat'),'projects':t('topbarProjects'),'pipeline':t('topbarPipeline'),'calendar':t('topbarCalendar'),'partners':t('topbarPartners'),'clients':t('topbarClients'),'finances':t('topbarFinances'),'settings':t('topbarSettings'),'dashboard':t('topbarDashboard')}[activeTab] || activeTab.toUpperCase()}</div>
           <div className="topbar-actions"></div>
-          <button className="notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)} aria-label="Abrir notificações">
+          <button className="notif-btn" onClick={() => setIsNotifOpen(!isNotifOpen)} aria-label="Abrir notificações" style={{position:'relative'}}>
             🔔
-            <div className={`notif-dot ${isNotifOpen ? 'on' : ''}`}></div>
+            {unreadCount > 0 && <span style={{position:'absolute',top:'-2px',right:'-2px',background:'var(--red)',color:'#fff',fontSize:'0.55rem',fontWeight:700,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}>{unreadCount}</span>}
           </button>
           <button className="theme-btn" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}>{theme === 'dark' ? '🌙' : '☀️'}</button>
         </div>
         
         {isNotifOpen && (
           <div className="notif-panel open" style={{ right: 30 }}>
-            <div className="nphead">Notificações <span className="npclear" style={{cursor: 'pointer'}}>Marcar todas lidas</span></div>
-            <div>
-              <div className="empty-state" style={{padding: '20px'}}>Sem notificações</div>
+            <div className="nphead">Notificações {unreadCount > 0 && <span style={{background:'var(--red)',color:'#fff',fontSize:'0.55rem',borderRadius:10,padding:'1px 6px',marginLeft:6}}>{unreadCount}</span>} <span className="npclear" style={{cursor: 'pointer'}} onClick={() => setNotifications(prev => prev.map(n => ({...n, read: true})))}>Marcar todas lidas</span></div>
+            <div style={{maxHeight:'350px',overflowY:'auto'}}>
+              {notifications.length === 0 && <div className="empty-state" style={{padding: '20px'}}>Sem notificações</div>}
+              {notifications.slice(0, 20).map(n => (
+                <div key={n.id} onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? {...x, read: true} : x))} style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',cursor:'pointer',background: n.read ? 'transparent' : 'rgba(201,148,58,0.08)',transition:'all .2s'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                    <span style={{fontSize:'0.7rem'}}>{n.type}</span>
+                    {!n.read && <span style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}></span>}
+                  </div>
+                  <div style={{fontSize:'0.8rem',fontWeight: n.read ? 400 : 700,color:'var(--text)'}}>{n.title}</div>
+                  <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:2}}>{n.body}</div>
+                  <div style={{fontSize:'0.6rem',color:'var(--t3)',marginTop:4,fontFamily:"'DM Mono',monospace"}}>{n.time.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
