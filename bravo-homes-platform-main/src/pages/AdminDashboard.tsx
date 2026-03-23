@@ -1842,9 +1842,9 @@ export default function AdminDashboard() {
                       <th style={{width: '15%', textAlign: 'center'}}>Ações</th>
                     </tr></thead>
                     <tbody>
-                      {/* Only show clients that are linked to leads with assigned partners */}
-                      {clients.filter(c => leads.some(l => l.client_id === c.id && l.assigned_partners && l.assigned_partners.length > 0)).length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhum cliente com parceiro atribuído.</td></tr>}
-                      {clients.filter(c => leads.some(l => l.client_id === c.id && l.assigned_partners && l.assigned_partners.length > 0)).map(c => (
+                      {/* Show all clients */}
+                      {clients.length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhum cliente cadastrado.</td></tr>}
+                      {clients.map(c => (
                         <tr key={c.id}>
                           <td><b>{c.name}</b></td>
                           <td>{c.email}</td>
