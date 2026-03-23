@@ -22,6 +22,10 @@ from dispatcher import dispatch_leads
 from scrapers.craigslist import scrape_craigslist
 from scrapers.yelp import scrape_yelp_reviews
 from scrapers.reddit import scrape_reddit
+from scrapers.facebook_groups import scrape_facebook_groups
+from scrapers.google_maps import scrape_google_maps
+from scrapers.twitter import scrape_twitter
+from scrapers.nextdoor import scrape_nextdoor
 
 load_dotenv()
 
@@ -54,6 +58,10 @@ async def run_scan():
         ("Craigslist", scrape_craigslist),
         ("Reddit", scrape_reddit),
         ("Yelp", scrape_yelp_reviews),
+        ("Facebook Groups", scrape_facebook_groups),
+        ("Google Maps Reviews", scrape_google_maps),
+        ("Twitter/X", scrape_twitter),
+        ("Nextdoor", scrape_nextdoor),
     ]
 
     for name, scraper_fn in scrapers:
