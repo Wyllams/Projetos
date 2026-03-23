@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import ArticlesList from "@/pages/ArticlesList";
 import ArticleGenerator from "@/pages/ArticleGenerator";
 import BulkGenerationPage from "@/pages/BulkGenerationPage";
+import MediaHubPage from "@/pages/MediaHubPage";
 import ArticleEditor from "@/pages/ArticleEditor";
 import ArticlePreview from "@/pages/ArticlePreview";
 import RadarPage from "@/pages/RadarPage";
@@ -92,6 +93,7 @@ const App = () => (
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="consumption" element={<ConsumptionPage />} />
                     <Route path="brand" element={<BrandSettingsPage />} />
+                    <Route path="media" element={<MediaHubPage />} />
                   </Routes>
                 </ClientLayout>
               </ProtectedRoute>
