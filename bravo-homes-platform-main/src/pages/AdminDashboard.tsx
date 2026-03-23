@@ -1525,12 +1525,22 @@ export default function AdminDashboard() {
                   <div className="ch"><span className="ct">Atividade Recente</span></div>
                   <div className="cb" style={{padding:'0 18px'}}>
                     {/* Render recent leads dynamically */}
-                    {leads.slice(0, 3).map((l: any, i: number) => (
+                    {leads.slice(0, 3).map((l: any, i: number) => {
+                      const created = new Date(l.created_at);
+                      const now = new Date();
+                      const diffMs = now.getTime() - created.getTime();
+                      const diffMin = Math.floor(diffMs / 60000);
+                      const diffH = Math.floor(diffMin / 60);
+                      const isToday = created.toDateString() === now.toDateString();
+                      const isYesterday = created.toDateString() === new Date(now.getTime() - 86400000).toDateString();
+                      const timeLabel = diffMin < 1 ? 'Agora' : diffMin < 60 ? `${diffMin} min` : diffH < 24 && isToday ? `${diffH}h` : isYesterday ? `Ontem ${created.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}` : created.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' ' + created.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+                      return (
                       <div className="log-item" key={l.id || i}>
-                        <div className="log-date">{i === 0 ? 'AGORA' : new Date(l.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="log-date">{timeLabel}</div>
                         <div className="log-text">Novo lead • <strong>{l.clients?.name || l.name || 'Desconhecido'}</strong> via {l.source || 'Manual'} — {l.service_type} {l.estimated_value ? `$${l.estimated_value}` : ''}</div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {leads.length === 0 && (
                       <>
                         <div className="log-item"><div className="log-date">AGORA</div><div className="log-text">Marcus enviou <strong>3 fotos</strong> do Johnson Kitchen — Etapa 4</div></div>
