@@ -9,6 +9,9 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import PartnerStagesTab from '../components/partner/PartnerStagesTab';
+import PartnerUploadsTab from '../components/partner/PartnerUploadsTab';
+import PartnerProfileTab from '../components/partner/PartnerProfileTab';
 import './PartnerDashboard.css';
 import '../styles/utilities.css';
 
@@ -842,98 +845,20 @@ export default function PartnerDashboard() {
           )}
 
           {activeTab === 'stages' && (
-            <div className="page active">
-              <div className="u-mb-16">
-                <div className="u-mono-label-xs">Gerenciamento de Etapas</div>
-                <div className="u-syne-title u-mt-3">Etapas de Execução</div>
-              </div>
-
-              {/* Project selector */}
-              <div className="card" className="u-mb-14">
-                <div className="ch"><span className="ct">Selecionar Projeto</span></div>
-                <div className="cb">
-                  <select
-                    style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--b)',borderRadius:6,padding:'10px 12px',color:'var(--text)',fontFamily:"'DM Sans',sans-serif",fontSize:'0.85rem',outline:'none'}}
-                    value={selectedProject?.id || ''}
-                    onChange={e => {
-                      const proj = projects.find(p => p.id === e.target.value);
-                      setSelectedProject(proj || null);
-                    }}
-                  >
-                    <option value="">-- Escolha um projeto --</option>
-                    {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {selectedProject && (
-                <>
-                  {/* Progress overview */}
-                  <div className="card" className="u-mb-14">
-                    <div className="ch"><span className="ct">📊 Progresso: {selectedProject.name}</span><span className="ca" style={{color:'var(--gold)'}}>{selectedProject.progress || 0}%</span></div>
-                    <div className="cb">
-                      <div className="prog-bar" style={{height:12,borderRadius:6,marginBottom:12}}><div className="prog-fill" style={{width:`${selectedProject.progress || 0}%`,borderRadius:6,transition:'width 0.3s'}}></div></div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'0.75rem',color:'var(--t3)'}}>
-                        <span>{projectStages.filter(s => s.status === 'completed').length} de {projectStages.length} etapas concluídas</span>
-                        <span>📅 Prazo: {selectedProject.deadline ? new Date(selectedProject.deadline).toLocaleDateString() : 'Não definido'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Add new stage */}
-                  <div className="card" className="u-mb-14">
-                    <div className="ch"><span className="ct">➕ Adicionar Nova Etapa</span></div>
-                    <div className="cb">
-                      <div style={{display:'flex',gap:10}}>
-                        <input
-                          type="text"
-                          className="f-inp"
-                          placeholder="Ex: Fundação, Alvenaria, Acabamento..."
-                          value={newStageName}
-                          onChange={e => setNewStageName(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && addStage()}
-                          className="u-flex-1"
-                        />
-                        <button className="btn gold" onClick={addStage} style={{whiteSpace:'nowrap'}}>+ Adicionar</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stages list */}
-                  <div className="card">
-                    <div className="ch"><span className="ct">📋 Etapas do Projeto</span><span className="ca">{projectStages.length} etapas</span></div>
-                    <div className="cb" style={{padding:0}}>
-                      {projectStages.length === 0 && <div style={{padding:'25px',textAlign:'center',color:'var(--t3)',fontSize:'0.85rem'}}>Nenhuma etapa criada ainda. Adicione a primeira etapa acima!</div>}
-                      {projectStages.sort((a: any, b: any) => a.order_index - b.order_index).map((stg: any, idx: number) => (
-                        <div key={stg.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b)',transition:'background 0.15s',cursor:'pointer'}} onClick={() => toggleStage(stg.id, stg.status)}>
-                          <div style={{width:24,height:24,borderRadius:6,border: stg.status === 'completed' ? '2px solid var(--green)' : '2px solid var(--b)',background: stg.status === 'completed' ? 'var(--green)' : 'transparent',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',color:'#fff',flexShrink:0,transition:'all 0.2s'}}>{stg.status === 'completed' && '✓'}</div>
-                          <div className="u-flex-1">
-                            <div style={{fontWeight:600,fontSize:'0.88rem',textDecoration: stg.status === 'completed' ? 'line-through' : 'none',color: stg.status === 'completed' ? 'var(--t3)' : 'var(--text)',transition:'all 0.2s'}}>{idx + 1}. {stg.name}</div>
-                            <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:2}}>{stg.status === 'completed' ? 'Concluída ✓' : stg.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</div>
-                          </div>
-                          <button className="btn ghost" style={{fontSize:'0.7rem',padding:'4px 10px',color:'var(--red)'}} onClick={(e) => { e.stopPropagation(); deleteStage(stg.id); }}>🗑</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{marginTop:16,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-                    <button className="btn gold" onClick={() => showToast('Salvo', 'Progresso sincronizado com Bravo Homes!', 'success')}>💾 Salvar progresso</button>
-                    <button className="btn ghost" onClick={() => { if (selectedProject) setUploadProjectId(selectedProject.id); setActiveTab('uploads'); }}>📷 Enviar fotos desta etapa</button>
-                  </div>
-                </>
-              )}
-
-              {!selectedProject && (
-                <div className="card">
-                  <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div className="u-emoji-icon">📋</div>
-                    <div style={{fontSize:'0.9rem',marginBottom:6}}>Selecione um projeto acima para gerenciar suas etapas</div>
-                    <div style={{fontSize:'0.75rem'}}>Ou clique em um projeto na aba <strong style={{color:'var(--gold)',cursor:'pointer'}} onClick={() => setActiveTab('projects')}>Projetos Ativos</strong></div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <PartnerStagesTab
+              projects={projects}
+              selectedProject={selectedProject}
+              setSelectedProject={setSelectedProject}
+              projectStages={projectStages}
+              newStageName={newStageName}
+              setNewStageName={setNewStageName}
+              addStage={addStage}
+              toggleStage={toggleStage}
+              deleteStage={deleteStage}
+              showToast={showToast}
+              setUploadProjectId={setUploadProjectId}
+              setActiveTab={setActiveTab}
+            />
           )}
 
           {/* CALENDAR */}
@@ -1340,215 +1265,41 @@ export default function PartnerDashboard() {
 
           {/* UPLOADS */}
           {activeTab === 'uploads' && (
-            <div className="page active">
-              <div className="u-section-header">
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Fotos &amp; Documentos</div>
-              </div>
-
-              {/* Project selector */}
-              <div className="card" className="u-mb-14">
-                <div className="ch"><span className="ct">📁 Selecionar Projeto</span></div>
-                <div className="cb">
-                  <select
-                    style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--b)',borderRadius:6,padding:'10px 12px',color:'var(--text)',fontFamily:"'DM Sans',sans-serif",fontSize:'0.85rem',outline:'none'}}
-                    value={uploadProjectId}
-                    onChange={e => setUploadProjectId(e.target.value)}
-                  >
-                    <option value="">-- Escolha um projeto --</option>
-                    {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {uploadProjectId && (
-                <>
-                  {/* Upload zone */}
-                  <div className="card" className="u-mb-14">
-                    <div className="ch"><span className="ct">📸 Enviar Arquivos</span></div>
-                    <div className="cb">
-                      <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="u-hide" onChange={e => handleFileUpload(e.target.files)} />
-                      <div
-                        className="upload-zone"
-                        onClick={() => fileInputRef.current?.click()}
-                        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--gold)'; }}
-                        onDragLeave={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--b)'; }}
-                        onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--b)'; handleFileUpload(e.dataTransfer.files); }}
-                        style={{cursor: isUploading ? 'wait' : 'pointer', opacity: isUploading ? 0.6 : 1}}
-                      >
-                        <div className="upload-icon">{isUploading ? '⏳' : '📸'}</div>
-                        <div className="upload-text">{isUploading ? 'Enviando arquivos...' : 'Clique ou arraste fotos/documentos aqui'}</div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',marginTop:6}}>JPG, PNG, PDF, DOC, XLS · Vários arquivos de uma vez</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Photo gallery */}
-                  {projectFiles.filter(f => f.file_type?.startsWith('image/')).length > 0 && (
-                    <div className="card" className="u-mb-14">
-                      <div className="ch"><span className="ct">🖼️ Galeria de Fotos</span><span className="ca">{projectFiles.filter(f => f.file_type?.startsWith('image/')).length} fotos</span></div>
-                      <div className="cb">
-                        <div className="photo-grid">
-                          {projectFiles.filter(f => f.file_type?.startsWith('image/')).map((f: any) => (
-                            <div key={f.id} className="photo-thumb" style={{backgroundImage: `url(${f.file_url})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative'}}>
-                              <div style={{position:'absolute',top:4,right:4,display:'flex',gap:4}}>
-                                <a href={f.file_url} target="_blank" rel="noreferrer" style={{background:'rgba(0,0,0,0.6)',borderRadius:4,padding:'2px 6px',fontSize:'0.65rem',color:'#fff',textDecoration:'none'}} onClick={e => e.stopPropagation()}>🔍</a>
-                                <button style={{background:'rgba(200,0,0,0.7)',border:'none',borderRadius:4,padding:'2px 6px',fontSize:'0.65rem',color:'#fff',cursor:'pointer'}} onClick={e => { e.stopPropagation(); deleteFile(f); }}>✕</button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Documents list */}
-                  <div className="card">
-                    <div className="ch"><span className="ct">📄 Documentos do Projeto</span><span className="ca">{projectFiles.filter(f => !f.file_type?.startsWith('image/')).length} docs</span></div>
-                    <div className="cb" style={{padding: projectFiles.filter(f => !f.file_type?.startsWith('image/')).length === 0 ? undefined : 0}}>
-                      {projectFiles.filter(f => !f.file_type?.startsWith('image/')).length === 0 && (
-                        <div style={{padding:'20px',textAlign:'center',color:'var(--t3)',fontSize:'0.85rem'}}>Nenhum documento enviado ainda.</div>
-                      )}
-                      {projectFiles.filter(f => !f.file_type?.startsWith('image/')).map((f: any) => (
-                        <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b)'}}>
-                          <span style={{fontSize:'1.4rem'}}>{getFileIcon(f.file_type)}</span>
-                          <div className="u-flex-1-min">
-                            <div style={{fontSize:'0.82rem',fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.file_name}</div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',textTransform:'uppercase'}}>{f.file_type?.split('/').pop()} · {new Date(f.created_at).toLocaleDateString()}</div>
-                          </div>
-                          <a href={f.file_url} target="_blank" rel="noreferrer" className="btn ghost" style={{fontSize:'0.72rem',padding:'5px 12px',textDecoration:'none'}}>Ver</a>
-                          <button className="btn ghost" style={{fontSize:'0.72rem',padding:'5px 10px',color:'var(--red)'}} onClick={() => deleteFile(f)}>🗑</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {!uploadProjectId && (
-                <div className="card">
-                  <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div className="u-emoji-icon">📁</div>
-                    <div style={{fontSize:'0.9rem'}}>Selecione um projeto acima para gerenciar fotos e documentos</div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <PartnerUploadsTab
+              projects={projects}
+              uploadProjectId={uploadProjectId}
+              setUploadProjectId={setUploadProjectId}
+              projectFiles={projectFiles}
+              isUploading={isUploading}
+              fileInputRef={fileInputRef}
+              handleFileUpload={handleFileUpload}
+              deleteFile={deleteFile}
+              getFileIcon={getFileIcon}
+            />
           )}
 
           {/* PROFILE */}
           {activeTab === 'profile' && (
-            <div className="page active">
-              <div className="u-mb-16"><div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>My Partner Profile</div></div>
-              <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                {/* ROW 1: Personal Info + Notifications */}
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'stretch'}}>
-                  {/* Personal Info */}
-                  <div className="card">
-                    <div className="ch">
-                      <span className="ct">Personal Information</span>
-                      {!profileEditing ? (
-                        <span className="ca" style={{cursor:'pointer'}} onClick={() => setProfileEditing(true)}>Edit</span>
-                      ) : (
-                        <div style={{display:'flex',gap:6}}>
-                          <span className="ca" style={{cursor:'pointer',color:'var(--red)'}} onClick={() => { setProfileEditing(false); setProfileForm(profileData); }}>Cancel</span>
-                          <span className="ca" style={{cursor:'pointer',color:'var(--green)'}} onClick={saveProfile}>{profileSaving ? 'Saving...' : 'Save'}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="cb">
-                      <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:16}}>
-                        <input ref={profileAvatarRef} type="file" accept="image/*" className="u-hide" onChange={e => uploadAvatar(e.target.files)} />
-                        <div onClick={() => profileAvatarRef.current?.click()} style={{width:56,height:56,borderRadius:'50%',cursor:'pointer',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--gold)',position:'relative',flexShrink:0}}>
-                          {profileData?.avatar_url ? (
-                            <img src={profileData.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} />
-                          ) : (
-                            <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:'1.1rem',color:'var(--bg)'}}>{(profileData?.full_name || 'PR').substring(0,2).toUpperCase()}</span>
-                          )}
-                          <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(0,0,0,0.5)',textAlign:'center',fontSize:'0.5rem',color:'#fff',padding:'2px 0'}}>📷</div>
-                        </div>
-                        <div className="u-flex-1">
-                          {profileEditing ? (
-                            <input className="f-inp" value={profileForm.full_name || ''} onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} placeholder="Full Name" style={{fontWeight:700,fontSize:'1rem',marginBottom:4}} />
-                          ) : (
-                            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1rem'}}>{profileData?.full_name || 'Partner'}</div>
-                          )}
-                          <div style={{fontSize:'0.78rem',color:'var(--t2)'}}>{profileData?.specialty || 'Certified Specialist'}</div>
-                          <div style={{color:'var(--gold)',fontSize:'0.75rem',marginTop:2}}>★★★★★ 5.0 (Bravo Verified)</div>
-                        </div>
-                      </div>
-                      {profileEditing ? (
-                        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                          <div className="u-grid-2">
-                            <div><label className="u-mono-label-sm">Phone</label><input className="f-inp" value={profileForm.phone || ''} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} placeholder="(407) 555-1234" /></div>
-                            <div><label className="u-mono-label-sm">Specialty</label><select className="f-inp" value={profileForm.specialty || ''} onChange={e => setProfileForm({...profileForm, specialty: e.target.value})}><option value="">Select...</option><option value="General Contractor">General Contractor</option><option value="Kitchen Remodel">Kitchen Remodel</option><option value="Bathroom Remodel">Bathroom Remodel</option><option value="Full Home Renovation">Full Home Renovation</option><option value="Painting & Finishing">Painting & Finishing</option><option value="Flooring">Flooring</option><option value="Electrical">Electrical</option><option value="Plumbing">Plumbing</option><option value="Roofing">Roofing</option></select></div>
-                          </div>
-                          <div className="u-grid-2">
-                            <div><label className="u-mono-label-sm">Company Name</label><input className="f-inp" value={profileForm.company_name || ''} onChange={e => setProfileForm({...profileForm, company_name: e.target.value})} placeholder="Your Company LLC" /></div>
-                            <div><label className="u-mono-label-sm">License Number</label><input className="f-inp" value={profileForm.license_number || ''} onChange={e => setProfileForm({...profileForm, license_number: e.target.value})} placeholder="CGC-123456" /></div>
-                          </div>
-                          <div className="u-grid-2">
-                            <div><label className="u-mono-label-sm">City</label><input className="f-inp" value={profileForm.city || ''} onChange={e => setProfileForm({...profileForm, city: e.target.value})} placeholder="Orlando" /></div>
-                            <div><label className="u-mono-label-sm">State</label><select className="f-inp" value={profileForm.state || ''} onChange={e => setProfileForm({...profileForm, state: e.target.value})}><option value="">Select...</option><option value="FL">Florida</option><option value="TX">Texas</option><option value="CA">California</option><option value="NY">New York</option><option value="GA">Georgia</option><option value="NC">North Carolina</option><option value="NJ">New Jersey</option><option value="PA">Pennsylvania</option></select></div>
-                          </div>
-                          <div><label className="u-mono-label-sm">Bio / About</label><textarea className="f-inp" style={{resize:'vertical',minHeight:60}} value={profileForm.bio || ''} onChange={e => setProfileForm({...profileForm, bio: e.target.value})} placeholder="Tell clients about your experience and expertise..." /></div>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:0}}>
-                            <div className="log-item"><div className="log-date">E-mail</div><div className="log-text">{user?.email || 'Not listed'}</div></div>
-                            <div className="log-item"><div className="log-date">Company</div><div className="log-text">{profileData?.company_name || 'Not set'}</div></div>
-                            <div className="log-item"><div className="log-date">Phone</div><div className="log-text">{profileData?.phone || 'Not set'}</div></div>
-                            <div className="log-item"><div className="log-date">License</div><div className="log-text">{profileData?.license_number || 'Not set'}</div></div>
-                            <div className="log-item"><div className="log-date">Specialty</div><div className="log-text">{profileData?.specialty || 'Not set'}</div></div>
-                            <div className="log-item"><div className="log-date">Location</div><div className="log-text">{profileData?.city && profileData?.state ? `${profileData.city}, ${profileData.state}` : 'Not set'}</div></div>
-                          </div>
-                          {profileData?.bio && <div style={{marginTop:10,padding:'10px 14px',background:'var(--bg3)',borderRadius:8,fontSize:'0.82rem',color:'var(--t2)',lineHeight:1.6}}>{profileData.bio}</div>}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Notifications */}
-                  <div className="card">
-                    <div className="ch"><span className="ct">🔔 Notification Preferences</span></div>
-                    <div className="cb">
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                        <div><div style={{fontWeight:600,fontSize:'0.85rem'}}>Email Notifications</div><div style={{fontSize:'0.72rem',color:'var(--t3)'}}>New leads, project updates, messages</div></div>
-                        <div onClick={() => toggleNotif('notifications_email', !profileForm.notifications_email)} style={{width:44,height:24,borderRadius:12,background:profileForm.notifications_email ? 'var(--green)' : 'var(--bg3)',cursor:'pointer',position:'relative',transition:'background .2s'}}><div style={{width:20,height:20,borderRadius:'50%',background:'#fff',position:'absolute',top:2,left:profileForm.notifications_email ? 22 : 2,transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}} /></div>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <div><div style={{fontWeight:600,fontSize:'0.85rem'}}>SMS Notifications</div><div style={{fontSize:'0.72rem',color:'var(--t3)'}}>Urgent updates and lead alerts</div></div>
-                        <div onClick={() => toggleNotif('notifications_sms', !profileForm.notifications_sms)} style={{width:44,height:24,borderRadius:12,background:profileForm.notifications_sms ? 'var(--green)' : 'var(--bg3)',cursor:'pointer',position:'relative',transition:'background .2s'}}><div style={{width:20,height:20,borderRadius:'50%',background:'#fff',position:'absolute',top:2,left:profileForm.notifications_sms ? 22 : 2,transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}} /></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ROW 2: Password + Language */}
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,alignItems:'stretch'}}>
-                  <div className="card">
-                    <div className="ch"><span className="ct">🔒 Change Password</span></div>
-                    <div className="cb">
-                      <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                        <input className="f-inp" type="password" placeholder="New password (min 6 chars)" value={passwordForm.newPass} onChange={e => setPasswordForm({...passwordForm, newPass: e.target.value})} />
-                        <input className="f-inp" type="password" placeholder="Confirm new password" value={passwordForm.confirmPass} onChange={e => setPasswordForm({...passwordForm, confirmPass: e.target.value})} />
-                        <button className="btn gold" onClick={changePassword} disabled={passwordSaving || !passwordForm.newPass} style={{opacity: passwordSaving || !passwordForm.newPass ? 0.6 : 1}}>{passwordSaving ? 'Changing...' : '🔒 Update Password'}</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="card">
-                    <div className="ch"><span className="ct">🌐 {t('language')}</span></div>
-                    <div className="cb">
-                      <select className="f-inp" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-                        <option value="pt-BR">Português (Brasil)</option>
-                        <option value="en-US">English (US)</option>
-                        <option value="es">Español</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PartnerProfileTab
+              user={user}
+              profileData={profileData}
+              profileEditing={profileEditing}
+              setProfileEditing={setProfileEditing}
+              profileForm={profileForm}
+              setProfileForm={setProfileForm}
+              profileSaving={profileSaving}
+              saveProfile={saveProfile}
+              profileAvatarRef={profileAvatarRef}
+              uploadAvatar={uploadAvatar}
+              passwordForm={passwordForm}
+              setPasswordForm={setPasswordForm}
+              passwordSaving={passwordSaving}
+              changePassword={changePassword}
+              toggleNotif={toggleNotif}
+              t={t}
+              lang={lang}
+              setLang={setLang}
+            />
           )}
 
         </div>
