@@ -2,6 +2,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { Button } from '../ui/Button';
+import { Card, CardContent } from '../ui/Card';
 import '../../styles/fullcalendar.css';
 
 interface CalendarTabProps {
@@ -22,17 +24,17 @@ export default function CalendarTab({
       <div className="u-section-header">
         <div className="u-syne-title">Calendário de Vistorias e Agendamentos</div>
         <div className="u-flex-gap-8">
-          <button className="btn ghost" onClick={handleGoogleSync} aria-label="Sincronizar com Google Calendar" style={{display:'flex', alignItems:'center', gap:'6px'}}>
+          <Button variant="ghost" onClick={handleGoogleSync} aria-label="Sincronizar com Google Calendar" style={{display:'flex', alignItems:'center', gap:'6px'}}>
             <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style={{width:'14px'}} alt="Google Calendar" />
             Sincronizar Google
-          </button>
-          <button className="btn gold" aria-label="Criar novo evento" onClick={() => {
+          </Button>
+          <Button variant="gold" aria-label="Criar novo evento" onClick={() => {
              setEventForm({ lead_id: '', date: '', time: '00:00', title: '' });
              setIsEventModalOpen(true);
-          }}>+ Novo Evento</button>
+          }}>+ Novo Evento</Button>
         </div>
       </div>
-      <div className="card" style={{ flex: 1, padding: '16px', background: 'var(--bg2)' }}>
+      <Card className="flex-1 p-[16px] bg-bg-2">
          <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
@@ -59,7 +61,7 @@ export default function CalendarTab({
             slotMaxTime="20:00:00"
             allDaySlot={true}
          />
-      </div>
+      </Card>
     </div>
   );
 }

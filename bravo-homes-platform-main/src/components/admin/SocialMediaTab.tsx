@@ -1,4 +1,8 @@
 import React from 'react';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 
 interface SocialMediaTabProps {
   socialAccounts: any[];
@@ -24,9 +28,9 @@ export default function SocialMediaTab({
       </div>
 
       {/* Connection Status */}
-      <div className="card" style={{marginBottom: '16px'}}>
-        <div className="ch"><span className="ct">Contas Conectadas</span></div>
-        <div className="cb">
+      <Card style={{marginBottom: '16px'}}>
+        <CardHeader><CardTitle>Contas Conectadas</CardTitle></CardHeader>
+        <CardContent>
           <div style={{display:'flex',gap:'16px',flexWrap:'wrap'}}>
             <div style={{flex:1,minWidth:'200px',padding:'16px',borderRadius:'10px',border: fbAccount ? '1px solid rgba(66,103,178,0.4)' : '1px solid var(--b)',background: fbAccount ? 'rgba(66,103,178,0.1)' : 'transparent'}}>
               <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
@@ -37,7 +41,7 @@ export default function SocialMediaTab({
               {fbAccount ? (
                 <div style={{fontSize:'0.8rem',color:'var(--t2)'}}>Page: <b>{fbAccount.page_name}</b></div>
               ) : (
-                <button className="btn gold" style={{marginTop:'8px'}} onClick={handleFbConnect}>Conectar Facebook</button>
+                <Button variant="gold" className="mt-[8px]" onClick={handleFbConnect}>Conectar Facebook</Button>
               )}
             </div>
             <div style={{flex:1,minWidth:'200px',padding:'16px',borderRadius:'10px',border: igAccount ? '1px solid rgba(193,53,132,0.4)' : '1px solid var(--b)',background: igAccount ? 'rgba(193,53,132,0.1)' : 'transparent'}}>
@@ -53,17 +57,17 @@ export default function SocialMediaTab({
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Post Editor */}
       {socialAccounts.length > 0 && (
-        <div className="card" style={{marginBottom: '16px'}}>
-          <div className="ch"><span className="ct">Criar Publicação</span></div>
-          <div className="cb">
-            <textarea
+        <Card style={{marginBottom: '16px'}}>
+          <CardHeader><CardTitle>Criar Publicação</CardTitle></CardHeader>
+          <CardContent>
+            <Textarea
               className="f-inp"
-              style={{minHeight:'100px',resize:'vertical',marginBottom:'12px'}}
+              style={{minHeight:'100px',marginBottom:'12px'}}
               placeholder="Escreva a legenda do seu post..."
               value={socialPostForm.content}
               onChange={e => setSocialPostForm({...socialPostForm, content: e.target.value})}
@@ -71,7 +75,7 @@ export default function SocialMediaTab({
             <div className="f-row" style={{marginBottom:'12px'}}>
               <div style={{flex:1}}>
                 <label className="f-label">URL da Imagem (opcional)</label>
-                <input type="text" className="f-inp" placeholder="https://exemplo.com/imagem.jpg" value={socialPostForm.image_url} onChange={e => setSocialPostForm({...socialPostForm, image_url: e.target.value})} />
+                <Input type="text" placeholder="https://exemplo.com/imagem.jpg" value={socialPostForm.image_url} onChange={e => setSocialPostForm({...socialPostForm, image_url: e.target.value})} />
               </div>
             </div>
             <div style={{display:'flex',gap:'16px',alignItems:'center',marginBottom:'12px'}}>
@@ -84,17 +88,17 @@ export default function SocialMediaTab({
                 📸 Instagram {!igAccount && <span style={{fontSize:'0.7rem',color:'var(--t3)'}}>(não conectado)</span>}
               </label>
             </div>
-            <button className="btn gold" disabled={socialPosting || !socialPostForm.content.trim()} onClick={handleSocialPublish}>
+            <Button variant="gold" disabled={socialPosting || !socialPostForm.content.trim()} onClick={handleSocialPublish}>
               {socialPosting ? '⏳ Publicando...' : '🚀 Publicar Agora'}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Post History */}
-      <div className="card">
-        <div className="ch"><span className="ct">Histórico de Publicações</span></div>
-        <div className="cb" style={{padding: 0}}>
+      <Card>
+        <CardHeader><CardTitle>Histórico de Publicações</CardTitle></CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
           <table className="tbl">
             <thead><tr>
               <th>Plataforma</th>
@@ -116,8 +120,8 @@ export default function SocialMediaTab({
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

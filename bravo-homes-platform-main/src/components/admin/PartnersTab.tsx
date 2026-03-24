@@ -1,4 +1,6 @@
 import React from 'react';
+import { Button } from '../ui/Button';
+import { Card, CardContent } from '../ui/Card';
 
 interface PartnersTabProps {
   partners: any[];
@@ -15,10 +17,10 @@ export default function PartnersTab({
     <div className="page active">
       <div className="u-section-header">
         <div className="u-syne-title">Parceiros e Contratados</div>
-        <button className="btn ghost" onClick={() => setIsPartnerOpen(true)}>Adicionar Parceiro</button>
+        <Button variant="ghost" onClick={() => setIsPartnerOpen(true)}>Adicionar Parceiro</Button>
       </div>
-      <div className="card">
-        <div className="u-p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <table className="tbl">
             <thead><tr><th>Nome / Cidade</th><th>Especialidade</th><th>Projetos</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody>
@@ -48,15 +50,15 @@ export default function PartnersTab({
                   }</td>
                   <td>
                     <div className="u-flex-gap-8">
-                      <button className="u-btn-pill" onClick={() => setSelectedPartner(p)}>Ver Perfil</button>
+                      <Button variant="ghost" className="rounded-full px-3 py-1" onClick={() => setSelectedPartner(p)}>Ver Perfil</Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

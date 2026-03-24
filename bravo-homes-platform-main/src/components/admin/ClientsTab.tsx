@@ -1,4 +1,6 @@
 import React from 'react';
+import { Button } from '../ui/Button';
+import { Card, CardContent } from '../ui/Card';
 
 interface ClientsTabProps {
   clients: any[];
@@ -15,10 +17,10 @@ export default function ClientsTab({
     <div className="page active">
       <div className="u-section-header">
         <div className="u-syne-title">Clientes da Bravo Homes</div>
-        <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Cliente</button>
+        <Button variant="gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Cliente</Button>
       </div>
-      <div className="card">
-        <div className="u-p-0">
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
           <table className="tbl">
             <thead><tr>
               <th style={{width: '20%'}}>Nome do Cliente</th>
@@ -39,16 +41,16 @@ export default function ClientsTab({
                   <td><div style={{fontSize:'0.7rem',color:'var(--t3)'}}>{new Date(c.created_at).toLocaleDateString('pt-BR')} - {new Date(c.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div></td>
                   <td style={{textAlign: 'center'}}>
                     <div style={{display:'flex', alignItems: 'center', justifyContent: 'center', gap:'16px'}}>
-                      <button className="u-btn-pill" onClick={() => showToast('O Perfil Completo e Histórico de CRM do cliente estará disponível nas próximas atualizações.')}>Ver Histórico</button>
-                      <button className="btn ghost" style={{padding:'3px 6px',fontSize:'.65rem', color: 'var(--red)', borderColor: 'rgba(231,76,60,0.3)', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1}} onClick={() => handleDeleteClient(c.id)} title="Excluir Cliente">🗑️</button>
+                      <Button variant="ghost" className="rounded-full px-3 py-1 text-[0.75rem]" onClick={() => showToast('O Perfil Completo e Histórico de CRM do cliente estará disponível nas próximas atualizações.')}>Ver Histórico</Button>
+                      <Button variant="ghost" className="px-2 py-1 text-[.65rem] text-danger border-danger/30" onClick={() => handleDeleteClient(c.id)} title="Excluir Cliente">🗑️</Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

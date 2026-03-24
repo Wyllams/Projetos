@@ -1,4 +1,7 @@
 import type { Partner } from '../../types';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 
 interface NewLeadModalProps {
   isOpen: boolean;
@@ -23,15 +26,15 @@ export default function NewLeadModal({ isOpen, onClose, onSubmit, form, setForm,
             <div className="u-grid-2col">
               <div>
                 <label className="f-label">Nome do Cliente *</label>
-                <input className="f-inp" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="João silva" />
+                <Input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="João silva" />
               </div>
               <div>
                 <label className="f-label">Cidade *</label>
-                <input className="f-inp" required value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="Orlando, FL" />
+                <Input required value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="Orlando, FL" />
               </div>
               <div>
                 <label className="f-label">Tipo de Serviço</label>
-                <select className="f-inp" value={form.service_type} onChange={e => setForm({...form, service_type: e.target.value})}>
+                <Select value={form.service_type} onChange={e => setForm({...form, service_type: e.target.value})}>
                   <option>Bathroom Remodel</option>
                   <option>Kitchen Remodel</option>
                   <option>Full Renovation</option>
@@ -40,40 +43,40 @@ export default function NewLeadModal({ isOpen, onClose, onSubmit, form, setForm,
                   <option>Painting</option>
                   <option>Flooring</option>
                   <option>Outro</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="f-label">Email</label>
-                <input className="f-inp" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="cliente@email.com" />
+                <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="cliente@email.com" />
               </div>
               <div>
                 <label className="f-label">Telefone</label>
-                <input className="f-inp" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(xxx) xxx-xxxx" />
+                <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(xxx) xxx-xxxx" />
               </div>
               <div>
                 <label className="f-label">Valor Estimado</label>
-                <input className="f-inp" type="number" value={form.estimated_value} onChange={e => setForm({...form, estimated_value: e.target.value})} placeholder="15000" />
+                <Input type="number" value={form.estimated_value} onChange={e => setForm({...form, estimated_value: e.target.value})} placeholder="15000" />
               </div>
               <div>
                 <label className="f-label">Urgência</label>
-                <select className="f-inp" value={form.urgency} onChange={e => setForm({...form, urgency: e.target.value})}>
+                <Select value={form.urgency} onChange={e => setForm({...form, urgency: e.target.value})}>
                   <option value="hot">🔥 Quente</option>
                   <option value="warm">🟡 Morno</option>
                   <option value="cool">❄️ Frio</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="f-label">Parceiro Vinculado</label>
-                <select className="f-inp" value={form.partner_id} onChange={e => setForm({...form, partner_id: e.target.value})}>
+                <Select value={form.partner_id} onChange={e => setForm({...form, partner_id: e.target.value})}>
                   <option value="">— Nenhum —</option>
                   {partners.map(p => <option key={p.id} value={p.id}>{p.full_name || p.name}</option>)}
-                </select>
+                </Select>
               </div>
             </div>
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn gold">Criar Lead</button>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" variant="gold">Criar Lead</Button>
           </div>
         </form>
       </div>

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
+import { motion } from 'framer-motion';
 import './LandingPage.css';
 
 export default function LandingPage() {
@@ -16,26 +18,16 @@ export default function LandingPage() {
     { text: "We're happy to answer questions in English or Spanish — Hablamos Español! 🌎", type: 'agent' }
   ]);
   const [formSuccess, setFormSuccess] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', handleScroll, { passive: true });
     
-    // Intersection observer for fade-in elements
-    const fadeEls = document.querySelectorAll('.fade-in');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    fadeEls.forEach(el => observer.observe(el));
-
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
     };
   }, []);
 
@@ -69,6 +61,12 @@ export default function LandingPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!captchaToken) {
+      alert("Please complete the security check.");
+      return;
+    }
+
+    setSubmitting(true);
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('full_name') as string,
@@ -79,32 +77,29 @@ export default function LandingPage() {
       source: `lp-bathroom-${rawCity.toLowerCase()}`,
       status: 'new',
       urgency: formData.get('timeline') === 'asap' ? 'hot' : 'warm',
-      notes: `Zip: ${formData.get('zip_code')} | Size: ${formData.get('bathroom_size')} | Timeline: ${formData.get('timeline')} | Msg: ${formData.get('message')}`
+      notes: `Zip: ${formData.get('zip_code')} | Size: ${formData.get('bathroom_size')} | Timeline: ${formData.get('timeline')} | Msg: ${formData.get('message')}`,
+      captchaToken
     };
 
-    // Needs to insert into clients first to get client_id ideally, but for MVP we can just store the lead 
-    // Wait, the leads table in Supabase has client_id references. Let's create client first.
-    const { data: clientData, error: clientErr } = await supabase.from('clients').insert({
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      city: data.city,
-      state: 'GA'
-    }).select().single();
-
-    if (!clientErr && clientData) {
-      await supabase.from('leads').insert({
-        client_id: clientData.id,
-        service_type: data.service_type,
-        city: data.city,
-        source: data.source,
-        notes: data.notes,
-        status: data.status,
-        urgency: data.urgency
+    try {
+      // Calls the Edge Function to handle insertion securely based on Turnstile validation
+      const { data: resData, error } = await supabase.functions.invoke('submit-lead', {
+        body: data
       });
-    }
 
-    setFormSuccess(true);
+      if (error || !resData?.success) {
+        console.error('Submission error:', error || resData?.error);
+        alert('There was an issue submitting your request. Please try again.');
+      } else {
+        setFormSuccess(true);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+      turnstileRef.current?.reset();
+    }
   };
 
   return (
@@ -190,24 +185,24 @@ export default function LandingPage() {
           <h2 className="section-title">Simple. Transparent. <span className="gold">Stress-Free.</span></h2>
           <p className="section-sub">From first call to final walkthrough — we handle everything so you don't have to.</p>
           <div className="steps-grid">
-            <div className="step-card fade-in">
+            <motion.div className="step-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
               <div className="step-num">01</div>
               <div className="step-icon">🏠</div>
               <div className="step-title">Free In-Home Estimate</div>
               <p className="step-desc">We come to you — no strings attached. Our estimator walks your bathroom, listens to your vision, and gives you an honest price on the spot. No surprises, no pressure.</p>
-            </div>
-            <div className="step-card fade-in">
+            </motion.div>
+            <motion.div className="step-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
               <div className="step-num">02</div>
               <div className="step-icon">📐</div>
               <div className="step-title">Custom Design &amp; Proposal</div>
               <p className="step-desc">We craft a detailed proposal with material selections, timelines, and fixed pricing. You'll know exactly what you're getting — in English or Spanish — before signing anything.</p>
-            </div>
-            <div className="step-card fade-in">
+            </motion.div>
+            <motion.div className="step-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.2 }}>
               <div className="step-num">03</div>
               <div className="step-icon">🔨</div>
               <div className="step-title">Professional Installation</div>
               <p className="step-desc">Our licensed crew gets to work on your schedule. Daily updates, clean job site, and zero surprises. We don't leave until you love your new bathroom — guaranteed.</p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -219,7 +214,7 @@ export default function LandingPage() {
           <h2 className="section-title">Real Transformations, <span className="gold">Real Results</span></h2>
           <p className="section-sub">Every project is unique. Here's a glimpse at what we've done for families just like yours across Metro Atlanta.</p>
           <div className="gallery-grid">
-            <div className="ba-card fade-in">
+            <motion.div className="ba-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
               <div className="ba-images">
                 <div className="ba-before">🛁<span className="ba-label">BEFORE</span></div>
                 <div className="ba-after">✨🚿<span className="ba-label">AFTER</span></div>
@@ -228,8 +223,8 @@ export default function LandingPage() {
                 <div className="ba-title">Marietta Master Bath <span className="ba-price">$18,400</span></div>
                 <div className="ba-meta">Full shower replacement · Tile · Vanity · Fixtures</div>
               </div>
-            </div>
-            <div className="ba-card fade-in">
+            </motion.div>
+            <motion.div className="ba-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
               <div className="ba-images">
                 <div className="ba-before">🛁<span className="ba-label">BEFORE</span></div>
                 <div className="ba-after">✨🛁<span className="ba-label">AFTER</span></div>
@@ -238,8 +233,8 @@ export default function LandingPage() {
                 <div className="ba-title">Alpharetta Guest Bath <span className="ba-price">$12,200</span></div>
                 <div className="ba-meta">Tub-to-shower conversion · New flooring · Lighting</div>
               </div>
-            </div>
-            <div className="ba-card fade-in">
+            </motion.div>
+            <motion.div className="ba-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.2 }}>
               <div className="ba-images">
                 <div className="ba-before">🪞<span className="ba-label">BEFORE</span></div>
                 <div className="ba-after">✨🪞<span className="ba-label">AFTER</span></div>
@@ -248,7 +243,7 @@ export default function LandingPage() {
                 <div className="ba-title">Roswell Hall Bath <span className="ba-price">$8,750</span></div>
                 <div className="ba-meta">Vanity · Mirror · Tile walls · Fixtures update</div>
               </div>
-            </div>
+            </motion.div>
           </div>
           <div style={{ textAlign: 'center', marginTop: '36px' }}>
             <a href="#form-section" className="btn-gold">Start Your Transformation →</a>
@@ -264,57 +259,57 @@ export default function LandingPage() {
           <p className="section-sub">We're not just contractors — we're your neighbors. Here's what sets us apart from every other remodeler in Georgia.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
             <div className="why-grid">
-              <div className="why-item fade-in">
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
                 <div className="why-icon">🛡️</div>
                 <div className="why-content">
                   <h3>Licensed &amp; Insured in Georgia</h3>
                   <p>Fully licensed, bonded, and insured. You're protected every step of the way — no unlicensed subs, ever.</p>
                 </div>
-              </div>
-              <div className="why-item fade-in">
+              </motion.div>
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <div className="why-icon">🌎</div>
                 <div className="why-content">
                   <h3>Hablamos Español — Bilingual Team</h3>
                   <p>Our entire team is fluent in Spanish and English. No miscommunications, no middlemen. We speak your language.</p>
                 </div>
-              </div>
-              <div className="why-item fade-in">
+              </motion.div>
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.2 }}>
                 <div className="why-icon">📋</div>
                 <div className="why-content">
                   <h3>5-Year Workmanship Warranty</h3>
                   <p>Every project comes with a full 5-year warranty on our labor. If anything isn't right, we fix it — no questions asked.</p>
                 </div>
-              </div>
-              <div className="why-item fade-in">
+              </motion.div>
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.3 }}>
                 <div className="why-icon">💰</div>
                 <div className="why-content">
                   <h3>Upfront Transparent Pricing</h3>
                   <p>No bait-and-switch. No hidden fees. Your quote is your price — period. We put everything in writing before we start.</p>
                 </div>
-              </div>
-              <div className="why-item fade-in">
+              </motion.div>
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.4 }}>
                 <div className="why-icon">🎯</div>
                 <div className="why-content">
                   <h3>Managed Start to Finish</h3>
                   <p>One dedicated project manager. One point of contact. We coordinate everything so you never have to chase anyone down.</p>
                 </div>
-              </div>
-              <div className="why-item fade-in">
+              </motion.div>
+              <motion.div className="why-item" initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.5 }}>
                 <div className="why-icon">📱</div>
                 <div className="why-content">
                   <h3>Online Project Tracking Portal</h3>
                   <p>Log in anytime to see photos, progress updates, and timelines. You're always in the loop — even from work.</p>
                 </div>
-              </div>
+              </motion.div>
             </div>
-            <div className="why-visual fade-in">
+            <motion.div className="why-visual" initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.6 }}>
               <div className="why-visual-inner">
                 <span className="why-big-emoji">🏆</span>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '8px' }}>Georgia's Choice for<br/>Bathroom Remodeling</h3>
                 <p style={{ fontSize: '0.88rem', color: 'var(--t2)', marginBottom: '20px', lineHeight: 1.7 }}>Voted Best Contractor in Cobb County 2023 &amp; 2024 by local homeowners.</p>
                 <div className="why-bilingual">🇺🇸 English · 🇲🇽 Español · We Speak Your Language</div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -404,8 +399,17 @@ export default function LandingPage() {
                         <label>Anything else you'd like us to know? <span style={{ color: 'var(--t3)' }}>(Optional)</span></label>
                         <textarea name="message" placeholder="Tell us about your bathroom..."></textarea>
                       </div>
-                      <button type="submit" className="btn-gold btn-submit">
-                        <span>Request My Free Estimate →</span>
+                      <div className="form-group" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                        <Turnstile
+                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'} // Testing key by default
+                          onSuccess={(token) => setCaptchaToken(token)}
+                          onError={() => setCaptchaToken(null)}
+                          onExpire={() => setCaptchaToken(null)}
+                          ref={turnstileRef}
+                        />
+                      </div>
+                      <button type="submit" className="btn-gold btn-submit" disabled={submitting || !captchaToken}>
+                        <span>{submitting ? 'Submitting...' : 'Request My Free Estimate →'}</span>
                       </button>
                       <p className="form-disclaimer">By submitting, you agree to be contacted by Bravo Homes Group. We never sell your information. 100% spam-free.</p>
                     </form>
@@ -435,7 +439,7 @@ export default function LandingPage() {
           <h2 className="section-title">Families Love <span className="gold">Bravo Homes</span></h2>
           <p className="section-sub">Don't take our word for it — here's what our customers say about their experience.</p>
           <div className="testi-grid">
-            <div className="testi-card fade-in">
+            <motion.div className="testi-card" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5 }}>
               <div className="testi-stars">★★★★★</div>
               <p className="testi-text">Bravo Homes completamente transformó nuestro baño. Todo el equipo fue profesional, limpio y puntual. El resultado superó todas nuestras expectativas. ¡Los recomiendo al 100%!</p>
               <div className="testi-author">
@@ -445,8 +449,8 @@ export default function LandingPage() {
                   <div className="testi-location">Marietta, GA · Full Remodel · March 2025</div>
                 </div>
               </div>
-            </div>
-            <div className="testi-card fade-in">
+            </motion.div>
+            <motion.div className="testi-card" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.1 }}>
               <div className="testi-stars">★★★★★</div>
               <p className="testi-text">I was nervous about the whole process, but the Bravo team made it so easy. They explained everything in Spanish, kept me updated daily, and finished two days ahead of schedule. Incredible work!</p>
               <div className="testi-author">
@@ -456,8 +460,8 @@ export default function LandingPage() {
                   <div className="testi-location">Alpharetta, GA · Shower Replacement · Jan 2025</div>
                 </div>
               </div>
-            </div>
-            <div className="testi-card fade-in">
+            </motion.div>
+            <motion.div className="testi-card" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }} transition={{ duration: 0.5, delay: 0.2 }}>
               <div className="testi-stars">★★★★★</div>
               <p className="testi-text">Best investment we made in our home. The pricing was transparent — what they quoted is exactly what we paid. No surprises. Our bathroom looks like something out of a magazine. Absolutely worth every penny.</p>
               <div className="testi-author">
@@ -467,7 +471,7 @@ export default function LandingPage() {
                   <div className="testi-location">Roswell, GA · Tile &amp; Vanity · Nov 2024</div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

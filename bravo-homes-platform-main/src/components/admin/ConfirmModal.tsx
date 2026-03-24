@@ -1,3 +1,5 @@
+import { Button } from '../ui/Button';
+
 interface ConfirmModalProps {
   show: boolean;
   msg: string;
@@ -17,8 +19,8 @@ export default function ConfirmModal({ show, msg, onConfirm, onCancel }: Confirm
           {msg}
         </div>
         <div className="modal-foot" style={{justifyContent: 'center', borderTop: 'none', paddingTop: '0', paddingBottom: '24px', gap: '12px'}}>
-          <button className="btn ghost" onClick={onCancel}>Cancelar</button>
-          <button className="btn gold" onClick={() => { onConfirm(); onCancel(); }}>Confirmar</button>
+          <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button variant="gold" onClick={() => { onConfirm(); onCancel(); }}>Confirmar</Button>
         </div>
       </div>
     </div>

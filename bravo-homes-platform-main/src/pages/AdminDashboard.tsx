@@ -2,38 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../lib/i18n';
-import type { Project, Lead, Partner, Client, LandingPage, CalendarEvent, Message, Profile, EditingEvent, GoogleEvent, ChatPartner } from '../types';
+import type { Lead, Partner, Client, CalendarEvent, Message, Profile, EditingEvent, GoogleEvent, ChatPartner } from '../types';
 import type { User } from '@supabase/supabase-js';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+
 import SettingsTab from '../components/admin/SettingsTab';
 import ChatPanel from '../components/admin/ChatPanel';
 import CalendarTab from '../components/admin/CalendarTab';
 import PartnersTab from '../components/admin/PartnersTab';
 import ClientsTab from '../components/admin/ClientsTab';
 import SocialMediaTab from '../components/admin/SocialMediaTab';
+import AdminOverviewTab from '../components/admin/AdminOverviewTab';
+import AdminPipelineTab from '../components/admin/AdminPipelineTab';
+import AdminAllLeadsTab from '../components/admin/AdminAllLeadsTab';
+import AdminProjectsTab from '../components/admin/AdminProjectsTab';
+import AdminLandingPagesTab from '../components/admin/AdminLandingPagesTab';
 import ToastContainer, { useToast } from '../components/admin/Toast';
 import ConfirmModal from '../components/admin/ConfirmModal';
 import NewProjectModal from '../components/admin/NewProjectModal';
+import NewLeadModal from '../components/admin/NewLeadModal';
+import PartnerModal from '../components/admin/PartnerModal';
+import EventModal from '../components/admin/EventModal';
+import { useAdminProjects, useAdminLeads, useAdminLandingPages, adminKeys } from '../hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
 import './AdminDashboard.css';
 import '../styles/utilities.css';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -48,14 +40,18 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState<{id: string; type: string; title: string; body: string; time: Date; read: boolean}[]>([]);
   const unreadCount = notifications.filter(n => !n.read).length;
   
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const { data: projects = [] } = useAdminProjects();
+  const { data: leads = [] } = useAdminLeads();
+  const { data: landingPages = [] } = useAdminLandingPages();
+  const activeLeadsCount = leads.length;
+
   const [partners, setPartners] = useState<Partner[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [loadingDb, setLoadingDb] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
+  
   // Lead Modal
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [notesInput, setNotesInput] = useState('');
@@ -232,7 +228,7 @@ export default function AdminDashboard() {
         const fbAccount = socialAccounts.find(a => a.platform === 'facebook');
         if (fbAccount) {
           let fbUrl = `https://graph.facebook.com/v21.0/${fbAccount.page_id}`;
-          let fbBody: Record<string, string> = { access_token: fbAccount.access_token };
+          const fbBody: Record<string, string> = { access_token: fbAccount.access_token };
           
           if (socialPostForm.image_url) {
             fbUrl += '/photos';
@@ -372,7 +368,7 @@ export default function AdminDashboard() {
         showToast('Erro ao atualizar projeto: ' + error.message);
       } else {
         showToast('Projeto atualizado com sucesso!');
-        setProjects(prev => prev.map(p => p.id === editingProjectId ? { ...p, ...fullData } : p));
+        queryClient.invalidateQueries({ queryKey: adminKeys.projects() });
       }
     } else {
       let { error } = await supabase.from('projects').insert([{ ...fullData, status: 'active', progress: 0 }]);
@@ -383,8 +379,7 @@ export default function AdminDashboard() {
         showToast('Erro ao criar projeto: ' + error.message);
       } else {
         showToast('Projeto criado com sucesso!');
-        const { data: refreshed } = await supabase.from('projects').select('*');
-        if (refreshed) setProjects(refreshed);
+        queryClient.invalidateQueries({ queryKey: adminKeys.projects() });
       }
     }
 
@@ -524,19 +519,13 @@ export default function AdminDashboard() {
       }
       
       // Parallel fetch all data at once for faster loading
-      const [projRes, leadsRes, lpRes, cliRes, partRes, chatRes, calRes] = await Promise.all([
-        supabase.from('projects').select('*'),
-        supabase.from('leads').select('*, clients(*)').order('created_at', { ascending: false }),
-        supabase.from('landing_pages').select('*'),
+      const [cliRes, partRes, chatRes, calRes] = await Promise.all([
         supabase.from('clients').select('*'),
         supabase.from('profiles').select('*').eq('role', 'parceiro'),
         supabase.from('messages').select('sender_id, receiver_id'),
         supabase.from('calendar_events').select('*'),
       ]);
 
-      if (projRes.data) setProjects(projRes.data);
-      if (leadsRes.data) setLeads(leadsRes.data);
-      if (lpRes.data) setLandingPages(lpRes.data);
       if (cliRes.data) setClients(cliRes.data);
       if (partRes.data) setPartners(partRes.data);
       if (chatRes.data) setAllChatMessages(chatRes.data);
@@ -562,7 +551,7 @@ export default function AdminDashboard() {
     const channel = supabase.channel('realtime-admin-leads')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const newLead = payload.new as any;
-        setLeads(prev => [newLead, ...prev]);
+        queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
         setNotifications(prev => [{ id: 'lead-' + newLead.id, type: '🎯 Novo Lead', title: newLead.name || 'Lead', body: `${newLead.service_type || ''} — ${newLead.city || ''}`, time: new Date(), read: false }, ...prev]);
         // Browser push notification
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"new_lead":true}');
@@ -590,7 +579,7 @@ export default function AdminDashboard() {
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, (payload) => {
         const proj = payload.new as any;
-        setProjects(prev => prev.map(p => p.id === proj.id ? proj : p));
+        queryClient.invalidateQueries({ queryKey: adminKeys.projects() });
         setNotifications(prev => [{ id: 'proj-' + proj.id + '-' + Date.now(), type: '📋 Projeto', title: proj.name || 'Projeto', body: `Status: ${proj.status || 'atualizado'}`, time: new Date(), read: false }, ...prev]);
         const prefs = JSON.parse(localStorage.getItem('bravo_notif_prefs') || '{"project_update":true}');
         if (prefs.project_update) {
@@ -660,37 +649,7 @@ export default function AdminDashboard() {
   const navItemClass = (tab: string) => `ni ${activeTab === tab ? 'active' : ''}`;
   const navTo = (tab: string) => { setActiveTab(tab); setSidebarOpen(false); };
 
-  // KANBAN DRAG AND DROP
-  const handleDragStart = (e: React.DragEvent, leadId: string) => {
-    e.dataTransfer.setData('leadId', leadId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    const leadId = e.dataTransfer.getData('leadId');
-    if (!leadId) return;
-
-    // Optimistic UI update
-    setLeads(prevLeads => prevLeads.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
-
-    // Update Supabase
-    const { error } = await supabase.from('leads')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', leadId);
-
-    if (error) {
-      console.error('Error updating lead status:', error);
-      // Revert optimism if failed (optional, simplified here)
-    }
-  };
-
   const updateLead = async (leadId: string, updates: any) => {
-    // Optimistic UI update
-    setLeads(prevLeads => prevLeads.map(l => l.id === leadId ? { ...l, ...updates } : l));
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead({ ...selectedLead, ...updates });
     }
@@ -702,6 +661,8 @@ export default function AdminDashboard() {
 
     if (error) {
       console.error('Error updating lead:', error);
+    } else {
+      queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
     }
   };
 
@@ -744,10 +705,6 @@ export default function AdminDashboard() {
 
   const handleDeleteClient = async (clientId: string) => {
     showConfirm("Certeza que deseja excluir este cliente e todos os seus leads?", async () => {
-      // Optimistic UI update
-      setClients(prev => prev.filter(c => c.id !== clientId));
-      setLeads(prev => prev.filter(l => l.client_id !== clientId));
-
       // Delete leads first to satisfy foreign key constraint, then delete client
       await supabase.from('leads').delete().eq('client_id', clientId);
       const { error } = await supabase.from('clients').delete().eq('id', clientId);
@@ -755,6 +712,8 @@ export default function AdminDashboard() {
       if (error) {
         console.error("Erro ao deletar cliente:", error);
         showToast("Erro ao excluir cliente: " + error.message);
+      } else {
+        queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
       }
     });
   };
@@ -779,7 +738,7 @@ export default function AdminDashboard() {
     const { data: newLead, error } = await supabase.from('leads').insert(leadPayload).select().single();
 
     if (!error && newLead) {
-      setLeads(prev => prev.some(l => l.id === newLead.id) ? prev : [newLead, ...prev]);
+      queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
       setIsNewLeadOpen(false);
       setNewLeadForm({ name: '', service_type: 'Bathroom Remodel', city: '', email: '', phone: '', urgency: 'warm', estimated_value: '', partner_id: '' });
       showToast('Lead criado com sucesso!');
@@ -916,31 +875,19 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!lpForm.name || !lpForm.city) return;
     try {
-      const { data, error } = await supabase.from('landing_pages').insert([{
+      const { error } = await supabase.from('landing_pages').insert([{
         name: lpForm.name,
         city: lpForm.city,
         status: 'draft'
       }]).select().single();
       if (error) throw error;
-      setLandingPages([data, ...landingPages]);
+      queryClient.invalidateQueries({ queryKey: adminKeys.landingPages() });
       setIsLPOpen(false);
       setLpForm({ name: '', city: '' });
       showToast("Landing Page criada com sucesso! Ela foi criada como rascunho (DRAFT). Clique no status para publicar.");
     } catch (err: any) {
       console.error(err);
       showToast(err.message || 'Erro ao criar LP.');
-    }
-  };
-
-  const toggleLPStatus = async (lp: any) => {
-    const newStatus = lp.status === 'live' ? 'draft' : 'live';
-    try {
-      const { error } = await supabase.from('landing_pages').update({ status: newStatus }).eq('id', lp.id);
-      if (error) throw error;
-      setLandingPages(prev => prev.map(p => p.id === lp.id ? { ...p, status: newStatus } : p));
-    } catch (err: any) {
-      console.error(err);
-      showToast("Erro ao alterar status.");
     }
   };
 
@@ -1300,11 +1247,6 @@ export default function AdminDashboard() {
   };
 
   const totalRevenue = projects.reduce((acc, p) => acc + (Number(p.contract_value) || 0), 0);
-  const activeProjectsCount = projects.filter(p => p.status === 'active').length;
-  const activeLeadsCount = leads.length;
-  const schedulingLeads = leads.filter(l => l.status === 'scheduling');
-  const schedulingLeadsCount = schedulingLeads.length;
-
   const grossRevenue = totalRevenue;
   const toReceive = projects.reduce((acc, p) => {
      const val = Number(p.contract_value) || 0;
@@ -1316,46 +1258,6 @@ export default function AdminDashboard() {
      const paid = val * ((p.progress || 0) / 100);
      return acc + (paid * 0.6); 
   }, 0);
-
-  // --- Metricas Receita Mensal ---
-  const currentYear = new Date().getFullYear();
-  const monthlyRevenue = new Array(12).fill(0);
-  projects.forEach(p => {
-    if (p.created_at) {
-       const d = new Date(p.created_at);
-       if (d.getFullYear() === currentYear) {
-         monthlyRevenue[d.getMonth()] += (Number(p.contract_value) || 0);
-       }
-    }
-  });
-  const chartLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-  // --- Metricas Leads por Fonte ---
-  const leadsPerSource = leads.reduce((acc, l) => {
-     const source = (l.source && l.source.trim() !== '') ? l.source : 'Desconhecido';
-     acc[source] = (acc[source] || 0) + 1;
-     return acc;
-  }, {} as Record<string, number>);
-  
-  const totalLeadsWithSource = leads.length || 1;
-  const sourceColors = ['var(--gold)', 'var(--blue)', 'var(--green)', 'var(--red)', 'var(--orange)', 'var(--purple)'];
-  const sourceElements = (Object.entries(leadsPerSource) as [string, number][])
-    .sort((a, b) => b[1] - a[1])
-    .map(([source, count]: [string, number], idx: number) => {
-       const color = sourceColors[idx % sourceColors.length];
-       const percentage = Math.round((count / totalLeadsWithSource) * 100);
-       const niceSourceName = source === 'manual-admin' ? 'Manual' : source;
-       return (
-         <div key={source} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-           <div style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'0.8rem', textTransform:'capitalize'}}>
-             <div style={{width:'8px',height:'8px',borderRadius:'50%',background:color}}></div>{niceSourceName}
-           </div>
-           <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.75rem'}}>
-             {percentage}% · {Number(count)} leads
-           </div>
-         </div>
-       );
-    });
 
   return (
     <div className="admin-body">
@@ -1442,222 +1344,42 @@ export default function AdminDashboard() {
         <div className="content">
 
           {/* DASHBOARD TAB */}
-          {activeTab === 'dashboard' && (
-            <div className="page active">
-              {loadingDb ? (
-                /* Skeleton loading state */
-                <>
-                  <div className="kpi-grid">
-                    {[1,2,3,4].map(i => <div key={i} className="skeleton skeleton-kpi"></div>)}
-                  </div>
-                  <div className="g2" style={{marginTop:'14px'}}>
-                    <div className="skeleton skeleton-card"></div>
-                    <div className="skeleton skeleton-card"></div>
-                  </div>
-                </>
-              ) : (
-                <>
-              <div className="kpi-grid">
-                <div className="kpi gold"><div className="kl">Receita Total (Obras)</div><div className="kv">${totalRevenue.toLocaleString()}</div><div className="kc">Dos contratos assinados</div></div>
-                <div className="kpi blue"><div className="kl">Leads Ativos</div><div className="kv">{activeLeadsCount}</div><div className="kc">Total no painel</div></div>
-                <div className="kpi green"><div className="kl">Obras em andamento</div><div className="kv">{activeProjectsCount}</div><div className="kc">Em execução</div></div>
-                <div className="kpi red"><div className="kl">Visitas (Agendamentos)</div><div className="kv">{schedulingLeadsCount}</div><div className="kc">{schedulingLeadsCount > 0 ? 'Leads agendados' : 'Nenhuma no momento'}</div></div>
-              </div>
-              <div className="g2">
-                <div className="card">
-                  <div className="ch"><span className="ct">Receita Mensal {currentYear}</span></div>
-                  <div className="cb" style={{ height: '160px', padding: '10px 18px' }}>
-                    <Bar 
-                      data={{
-                        labels: chartLabels,
-                        datasets: [{
-                          label: 'Receita ($)',
-                          data: monthlyRevenue,
-                          backgroundColor: '#C9943A',
-                          borderRadius: 4,
-                        }]
-                      }} 
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { 
-                          y: { display: false, grid: { display: false } },
-                          x: { grid: { display: false }, ticks: { color: '#9A9690', font: { size: 10, family: 'Inter' } }, border: { display: false } }
-                        }
-                      }} 
-                    />
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="ch"><span className="ct">Leads por Fonte</span></div>
-                  <div className="cb" style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-                    {sourceElements.length > 0 ? sourceElements : (
-                       <div style={{fontSize: '0.8rem', color: 'var(--t3)'}}>Nenhum lead com fonte rastreada.</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="g2">
-                <div className="card">
-                  <div className="ch"><span className="ct">Projetos em Andamento</span><span className="ca" onClick={() => setActiveTab('projects')}>Ver todos →</span></div>
-                  <div className="cb" style={{padding: 0}}>
-                    <table className="tbl">
-                      <thead><tr><th>Cliente</th><th>Parceiro</th><th>Progresso</th><th>Entrega</th></tr></thead>
-                      <tbody>
-                        {projects.length === 0 && !loadingDb && (
-                          <tr><td colSpan={4} className="u-empty-state">Nenhum projeto encontrado.</td></tr>
-                        )}
-                        {projects.slice(0, 3).map((p: any) => (
-                          <tr key={p.id} className="u-cursor-pointer" onClick={() => setActiveTab('projects')}>
-                            <td><div style={{fontWeight:600}}>{p.name || 'Projeto sem nome'}</div><div style={{fontSize:'0.72rem',color:'var(--t2)'}}>{p.service_type || 'Serviço'} · ${p.contract_value || '0'}</div></td>
-                            <td><div className="av p1" style={{width:'24px',height:'24px',fontSize:'0.6rem'}}>MR</div></td>
-                            <td style={{width:'90px'}}><div className="prog-bar"><div className="prog-fill" style={{width:`${p.progress || 0}%`}}></div></div><div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--gold)',marginTop:'3px'}}>{p.progress || 0}%</div></td>
-                            <td style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--orange)'}}>{p.deadline ? new Date(p.deadline).toLocaleDateString() : 'N/D'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="ch"><span className="ct">Atividade Recente</span></div>
-                  <div className="cb" style={{padding:'0 18px'}}>
-                    {/* Render recent leads dynamically */}
-                    {leads.slice(0, 3).map((l: any, i: number) => {
-                      const created = new Date(l.created_at);
-                      const now = new Date();
-                      const diffMs = now.getTime() - created.getTime();
-                      const diffMin = Math.floor(diffMs / 60000);
-                      const diffH = Math.floor(diffMin / 60);
-                      const isToday = created.toDateString() === now.toDateString();
-                      const isYesterday = created.toDateString() === new Date(now.getTime() - 86400000).toDateString();
-                      const timeLabel = diffMin < 1 ? 'Agora' : diffMin < 60 ? `${diffMin} min` : diffH < 24 && isToday ? `${diffH}h` : isYesterday ? `Ontem ${created.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}` : created.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' ' + created.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-                      return (
-                      <div className="log-item" key={l.id || i}>
-                        <div className="log-date">{timeLabel}</div>
-                        <div className="log-text">Novo lead • <strong>{l.clients?.name || l.name || 'Desconhecido'}</strong> via {l.source || 'Manual'} — {l.service_type} {l.estimated_value ? `$${l.estimated_value}` : ''}</div>
-                      </div>
-                      );
-                    })}
-                    {leads.length === 0 && (
-                      <>
-                        <div className="log-item"><div className="log-date">AGORA</div><div className="log-text">Marcus enviou <strong>3 fotos</strong> do Johnson Kitchen — Etapa 4</div></div>
-                        <div className="log-item"><div className="log-date">09:45</div><div className="log-text">Carlos atualizou etapa 3 do Webb Bathroom — Concluído ✓</div></div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-                </>
-              )}
-            </div>
-          )}
+          {activeTab === 'dashboard' && <AdminOverviewTab setActiveTab={setActiveTab} />}
 
           {/* PIPELINE TAB */}
           {activeTab === 'pipeline' && (
-            <div className="page active">
-               <div style={{marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
-                 <div>
-                   <div style={{fontSize:'0.62rem',color:'var(--t3)',letterSpacing:'1px',textTransform:'uppercase',marginBottom:'3px'}}>{activeLeadsCount} leads ativos</div>
-                   <div style={{fontWeight:700,fontSize:'1.05rem'}}>Pipeline de Leads</div>
-                 </div>
-                 <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Lead</button>
-               </div>
-                <div className="kanban">
-                  {['new', 'contacted', 'scheduling', 'proposal', 'closed'].map(statusGroup => {
-                    const statusTitles: Record<string, string> = {
-                      'new': 'Novos',
-                      'contacted': 'Em Contato',
-                      'scheduling': 'Agendamento / Visita',
-                      'proposal': 'Proposta',
-                      'closed': 'Fechados ✓'
-                    };
-                    const colLeads = leads.filter(l => l.status === statusGroup);
-                    return (
-                      <div 
-                        className="kol" 
-                        key={statusGroup}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, statusGroup)}
-                      >
-                        <div className="kol-h">
-                          {statusTitles[statusGroup]}
-                          <span className="kol-n" style={statusGroup === 'closed' ? {background:'var(--green)',color:'#fff'} : {}}>{colLeads.length}</span>
-                        </div>
-                        {colLeads.map((l: any) => (
-                          <div 
-                            className="lead-c" 
-                            draggable 
-                            key={l.id}
-                            onDragStart={(e) => handleDragStart(e, l.id)}
-                            onClick={() => setSelectedLead(l)}
-                          >
-                            <div className="lc-name">{l.clients?.name || l.name || 'Lead s/ Nome'}</div>
-                            <div className="lc-srv">{l.service_type || 'Serviço G'} · {l.city || 'Local ND'}</div>
-                            <div className="lc-foot">
-                              <span className="lc-val">{l.estimated_value ? `$${Number(l.estimated_value).toLocaleString()}` : 'Valor tbd'}</span>
-                              {l.urgency === 'hot' && <span className="urg hot" style={{background:'rgba(231,76,60,0.15)',color:'var(--red)'}}>QUENTE</span>}
-                              {l.urgency === 'warm' && <span className="urg warm" style={{background:'rgba(230,126,34,0.15)',color:'var(--orange)'}}>MORNO</span>}
-                              {l.urgency === 'cool' && <span className="urg cool" style={{background:'rgba(52,152,219,0.15)',color:'var(--blue)'}}>FRIO</span>}
-                            </div>
-                          </div>
-                        ))}
-                        {colLeads.length === 0 && <div className="empty-state" style={{fontSize: '0.8rem', padding: '10px'}}>Vazio</div>}
-                      </div>
-                    );
-                  })}
-                </div>
-            </div>
+            <AdminPipelineTab 
+              setIsNewLeadOpen={setIsNewLeadOpen}
+              setSelectedLead={setSelectedLead}
+            />
           )}
 
           {/* PROJECTS TAB */}
           {activeTab === 'projects' && (
-            <div className="page active">
-              <div className="u-section-header">
-                 <div className="u-syne-title">Projetos Ativos — Visão Admin</div>
-                 <button className="btn gold" onClick={handleCreateProject}>Novo Projeto</button>
-              </div>
-              <div className="card">
-                <div className="cb u-p-0">
-                  <table className="tbl">
-                    <thead><tr><th>Cliente</th><th>Serviço</th><th>Valor</th><th>Progresso</th><th>Status</th><th style={{textAlign:'center'}}>Ação</th></tr></thead>
-                    <tbody>
-                      {projects.length === 0 && !loadingDb && (
-                        <tr><td colSpan={6} className="u-empty-state">Nenhum projeto em andamento.</td></tr>
-                      )}
-                      {projects.map((p: any) => (
-                        <tr key={p.id}>
-                          <td><b>{p.name || 'Projeto'}</b></td>
-                          <td>{p.service_type || 'Serviço'}</td>
-                          <td className="u-text-gold">${p.contract_value || '0'}</td>
-                          <td><div className="prog-bar" style={{width:'80px'}}><div className="prog-fill" style={{width:`${p.progress || 0}%`}}></div></div><div style={{fontSize:'.65rem',color:'var(--t2)',marginTop:'3px'}}>{p.progress || 0}%</div></td>
-                          <td><span className={`status-b ${p.status === 'active' ? 'sb-active' : ''}`}>{p.status || 'ND'}</span></td>
-                          <td>
-                            <div style={{display:'flex',gap:'12px',justifyContent:'center',alignItems:'center'}}>
-                              <button className="btn ghost u-btn-pill" onClick={() => {
-                                setNewProjectForm({ name: p.name || '', service_type: p.service_type || '', contract_value: String(p.contract_value || ''), deadline: p.deadline || '', start_date: (p as any).start_date || '', client_id: (p as any).client_id || '' });
-                                setEditingProjectId(p.id);
-                                setIsNewProjectOpen(true);
-                              }}>✏️ Editar</button>
-                              <button className="btn ghost" style={{padding:'4px 10px',fontSize:'.7rem',color:'var(--red)'}} onClick={async () => {
-                                showConfirm(`Deseja excluir o projeto "${p.name}"?`, async () => {
-                                  const { error } = await supabase.from('projects').delete().eq('id', p.id);
-                                  if (error) { showToast('Erro: ' + error.message); return; }
-                                  setProjects(prev => prev.filter(x => x.id !== p.id));
-                                  showToast('Projeto excluído com sucesso!');
-                                });
-                              }}>🗑️</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <AdminProjectsTab
+              handleCreateProject={handleCreateProject}
+              setNewProjectForm={setNewProjectForm}
+              setEditingProjectId={setEditingProjectId}
+              setIsNewProjectOpen={setIsNewProjectOpen}
+              showConfirm={showConfirm}
+            />
+          )}
+
+          {/* ALL LEADS TAB */}
+          {activeTab === 'allleads' && (
+            <AdminAllLeadsTab
+              setIsNewLeadOpen={setIsNewLeadOpen}
+              setSelectedLead={setSelectedLead}
+              showConfirm={showConfirm}
+            />
+          )}
+
+          {/* LANDING PAGES TAB */}
+          {activeTab === 'lp' && (
+            <AdminLandingPagesTab
+              setIsLPOpen={setIsLPOpen}
+              showConfirm={showConfirm}
+            />
           )}
 
           {/* CALENDAR TAB */}
@@ -1681,98 +1403,6 @@ export default function AdminDashboard() {
               setIsPartnerOpen={setIsPartnerOpen}
               setSelectedPartner={setSelectedPartner}
             />
-          )}
-
-          {/* ALL LEADS TAB */}
-          {activeTab === 'allleads' && (
-            <div className="page active">
-              <div className="u-section-header">
-                <div className="u-syne-title">Todos os Leads</div>
-                <button className="btn gold" onClick={() => setIsNewLeadOpen(true)}>+ Novo Lead</button>
-              </div>
-              <div className="card">
-                <div className="cb u-p-0">
-                  <table className="tbl">
-                    <thead><tr><th>Lead / Cliente</th><th>Serviço / Cidade</th><th>Valor</th><th>Temperatura</th><th>Status</th><th>Criado em</th><th></th></tr></thead>
-                    <tbody>
-                      {leads.map(l => (
-                        <tr key={l.id} className="u-cursor-pointer" onClick={() => setSelectedLead(l)}>
-                          <td><b>{l.clients?.name || l.name || 'Lead s/ Nome'}</b></td>
-                          <td>{l.service_type} • {l.city}</td>
-                          <td className="u-text-gold">${l.estimated_value || 'N/D'}</td>
-                          <td>
-                            {l.urgency === 'hot' && <span className="urg hot">QUENTE</span>}
-                            {l.urgency === 'warm' && <span className="urg warm">MORNO</span>}
-                            {l.urgency === 'cool' && <span className="urg cool">FRIO</span>}
-                          </td>
-                          <td><span className="status-b sb-draft">{l.status}</span></td>
-                          <td><div style={{fontSize:'0.75rem',color:'var(--text)'}}>{new Date(l.created_at || '').toLocaleDateString('pt-BR')}<br/><span style={{color:'var(--t2)'}}>{new Date(l.created_at || '').toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span></div></td>
-                          <td onClick={e => e.stopPropagation()}>
-                            <button className="btn ghost" style={{padding:'4px 8px',fontSize:'.85rem',color:'var(--red)'}} onClick={async () => {
-                              showConfirm(`Deseja excluir o lead "${l.clients?.name || l.name}"?`, async () => {
-                                const { error } = await supabase.from('leads').delete().eq('id', l.id);
-                                if (error) { showToast('Erro: ' + error.message); return; }
-                                setLeads(prev => prev.filter(x => x.id !== l.id));
-                                showToast('Lead excluído com sucesso!');
-                              });
-                            }}>🗑️</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* LANDING PAGES TAB */}
-          {activeTab === 'lp' && (
-            <div className="page active">
-              <div className="u-section-header">
-                <div className="u-syne-title">Landing Pages</div>
-                <button className="btn gold" onClick={() => setIsLPOpen(true)}>+ Nova LP</button>
-              </div>
-              <div className="card">
-                <div className="cb u-p-0">
-                  <table className="tbl">
-                    <thead><tr><th style={{width:'18%'}}>Página (Cidade)</th><th style={{width:'12%'}}>Status</th><th style={{width:'14%'}}>Visitantes</th><th style={{width:'14%'}}>Leads Gerados</th><th style={{width:'14%'}}>Conversão</th><th style={{width:'28%',textAlign:'center'}}>Ação</th></tr></thead>
-                    <tbody>
-                      {landingPages.length === 0 && !loadingDb && <tr><td colSpan={6} className="u-empty-state">Nenhuma LP encontrada.</td></tr>}
-                      {landingPages.map(lp => {
-                        const convRate = (lp.visitors ?? 0) > 0 ? Math.round(((lp.leads_count ?? 0) / (lp.visitors ?? 1)) * 100) : 0;
-                        return (
-                          <tr key={lp.id}>
-                            <td><b>{lp.name}</b><div style={{fontSize:'0.7rem',color:'var(--t2)'}}>{lp.city}</div></td>
-                            <td><span className={`status-b ${lp.status === 'live' ? 'sb-live' : 'sb-draft'}`} style={{cursor: 'pointer'}} title="Clique para alternar o status" onClick={() => toggleLPStatus(lp)}>{(lp.status || 'draft').toUpperCase()}</span></td>
-                            <td>{lp.visitors}</td>
-                            <td>{lp.leads_count}</td>
-                            <td><div style={{fontFamily:"'DM Mono',monospace",color:'var(--green)'}}>{convRate}%</div></td>
-                            <td>
-                              <div style={{display:'flex', gap:'12px', justifyContent:'center', alignItems:'center'}}>
-                                <button className="btn ghost" style={{padding:'6px 14px',fontSize:'.75rem'}} onClick={() => {
-                                  navigator.clipboard.writeText(`https://bravohomes.com/lp/${(lp.city || '').toLowerCase().replace(/\\s+/g, '-')}`);
-                                  showToast('Link da LP copiado para a área de transferência!');
-                                }}>Link</button>
-                                <button className="btn ghost" style={{padding:'6px 14px',fontSize:'.75rem'}} onClick={() => showToast('Construtor visual de LP em breve!')}>Editar</button>
-                                <button className="btn ghost" style={{padding:'6px 14px',fontSize:'.95rem',color:'var(--red)'}} onClick={async () => {
-                                  showConfirm(`Deseja excluir a LP "${lp.name}"?`, async () => {
-                                    const { error } = await supabase.from('landing_pages').delete().eq('id', lp.id);
-                                    if (error) { showToast('Erro: ' + error.message); return; }
-                                    setLandingPages(prev => prev.filter(x => x.id !== lp.id));
-                                    showToast('Landing Page excluída com sucesso!');
-                                  });
-                                }}>🗑️</button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* CLIENTS TAB */}
@@ -2051,48 +1681,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* EVENT MODAL */}
-      {isEventModalOpen && (
-        <div className="modal-overlay open" onClick={() => setIsEventModalOpen(false)}>
-          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">{eventForm.lead_id && selectedLead ? `Agendar Vistoria: ${selectedLead.clients?.name || selectedLead.name}` : 'Criar Novo Agendamento'}</div>
-              <button className="dclose" aria-label="Fechar" onClick={() => setIsEventModalOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={handleEventSubmit}>
-              <div className="modal-body">
-                {(!eventForm.lead_id || !selectedLead) && (
-                  <div className="f-row u-mb-15">
-                    <div className="u-w-full">
-                      <label className="f-label">Selecionar Lead / Cliente *</label>
-                      <select required className="f-inp" value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
-                        <option value="">-- Selecione o Lead --</option>
-                        {leads.map(l => (
-                          <option key={l.id} value={l.id}>{l.clients?.name || l.name} ({l.service_type})</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="f-row">
-                  <div>
-                    <label className="f-label">Data *</label>
-                    <input required type="date" className="f-inp" value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
-                  </div>
-                  <div>
-                    <label className="f-label">Horário *</label>
-                    <input required type="time" className="f-inp" value={eventForm.time} onChange={e => setEventForm({...eventForm, time: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="btn ghost" onClick={() => setIsEventModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn gold">Confirmar Agendamento</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onSubmit={handleEventSubmit}
+        eventForm={eventForm}
+        setEventForm={setEventForm}
+        leads={leads}
+        selectedLead={selectedLead}
+      />
 
       {/* EDIT EVENT MODAL */}
       {editingEvent && (
@@ -2110,11 +1707,11 @@ export default function AdminDashboard() {
               <div className="f-row">
                 <div>
                   <label className="f-label">Data *</label>
-                  <input required type="date" className="f-inp" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
+                  <input required type="date" className="f-inp" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} onClick={(e) => { try { if ('showPicker' in e.target) { (e.target as HTMLInputElement).showPicker(); } } catch(err){} }} />
                 </div>
                 <div>
                   <label className="f-label">Horário *</label>
-                  <input required type="time" className="f-inp" value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} onClick={(e) => { try { 'showPicker' in e.target && (e.target as HTMLInputElement).showPicker() } catch(err){} }} />
+                  <input required type="time" className="f-inp" value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} onClick={(e) => { try { if ('showPicker' in e.target) { (e.target as HTMLInputElement).showPicker(); } } catch(err){} }} />
                 </div>
               </div>
             </div>
@@ -2162,58 +1759,13 @@ export default function AdminDashboard() {
       )}
 
       {/* PARTNER MODAL */}
-      {isPartnerOpen && (
-        <div className="modal-overlay open" onClick={() => setIsPartnerOpen(false)}>
-          <div className="modal u-modal-md" onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <div className="modal-title">Novo Parceiro / Contratado</div>
-              <button className="dclose" aria-label="Fechar" onClick={() => setIsPartnerOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={handlePartnerSubmit}>
-              <div className="modal-body">
-                <div className="f-row">
-                  <div className="u-w-full">
-                    <label className="f-label">Nome da Empresa ou Profissional *</label>
-                    <input required type="text" className="f-inp" placeholder="Ex: Obras Rápidas LLC" value={partnerForm.name} onChange={e => setPartnerForm({...partnerForm, name: e.target.value})} />
-                  </div>
-                </div>
-                <div className="f-row">
-                  <div className="u-w-full">
-                    <label className="f-label">E-mail do Parceiro *</label>
-                    <input type="email" className="f-inp" placeholder="parceiro@email.com" value={partnerForm.email} onChange={e => setPartnerForm({...partnerForm, email: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="f-row">
-                  <div className="u-w-full">
-                    <label className="f-label">Senha de Acesso *</label>
-                    <input type="password" className="f-inp" placeholder="Mínimo 6 caracteres" value={partnerForm.password} onChange={e => setPartnerForm({...partnerForm, password: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="f-row">
-                  <div style={{width: '50%'}}>
-                    <label className="f-label">Especialidade</label>
-                    <input type="text" className="f-inp" placeholder="Ex: Piso, Geral" value={partnerForm.specialty} onChange={e => setPartnerForm({...partnerForm, specialty: e.target.value})} />
-                  </div>
-                  <div style={{width: '50%'}}>
-                    <label className="f-label">Telefone</label>
-                    <input type="text" className="f-inp" placeholder="(000) 000-0000" value={partnerForm.phone} onChange={e => setPartnerForm({...partnerForm, phone: e.target.value})} />
-                  </div>
-                </div>
-                <div className="f-row">
-                  <div className="u-w-full">
-                    <label className="f-label">Local de Atuação (Cidade)</label>
-                    <input type="text" className="f-inp" placeholder="Ex: Marietta, GA" value={partnerForm.city} onChange={e => setPartnerForm({...partnerForm, city: e.target.value})} />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="btn ghost" onClick={() => setIsPartnerOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn gold">Adicionar Parceiro</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PartnerModal
+        isOpen={isPartnerOpen}
+        onClose={() => setIsPartnerOpen(false)}
+        onSubmit={handlePartnerSubmit}
+        form={partnerForm}
+        setForm={setPartnerForm}
+      />
 
       {/* PARTNER DETALHES MODAL - EDITABLE */}
       <div className={`modal-overlay ${selectedPartner ? 'open' : ''}`} onClick={() => { setSelectedPartner(null); setEditPartner(null); }}>
@@ -2333,64 +1885,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* NEW LEAD MODAL */}
-      {isNewLeadOpen && (
-        <div className="modal-overlay open" onClick={() => setIsNewLeadOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
-            <div className="modal-head">
-              <div className="modal-title">Cadastrar Novo Lead Manual</div>
-              <button className="dclose" aria-label="Fechar" onClick={() => setIsNewLeadOpen(false)}>✕</button>
-            </div>
-            <form onSubmit={handleNewLeadSubmit}>
-              <div className="modal-body">
-                <div className="f-row">
-                  <div><label className="f-label">Nome Completo do Cliente *</label><input required type="text" className="f-inp" placeholder="Ex: John Smith" value={newLeadForm.name} onChange={e => setNewLeadForm({...newLeadForm, name: e.target.value})} /></div>
-                  <div><label className="f-label">Cidade *</label><input required type="text" className="f-inp" placeholder="Ex: Marietta" value={newLeadForm.city} onChange={e => setNewLeadForm({...newLeadForm, city: e.target.value})} /></div>
-                </div>
-                <div className="f-row">
-                  <div><label className="f-label">Telefone</label><input type="text" className="f-inp" placeholder="(000) 000-0000" value={newLeadForm.phone} onChange={e => setNewLeadForm({...newLeadForm, phone: e.target.value})} /></div>
-                  <div><label className="f-label">Email</label><input type="email" className="f-inp" placeholder="john@email.com" value={newLeadForm.email} onChange={e => setNewLeadForm({...newLeadForm, email: e.target.value})} /></div>
-                </div>
-                <div className="f-row">
-                  <div>
-                    <label className="f-label">Tipo de Serviço *</label>
-                    <select className="f-inp" value={newLeadForm.service_type} onChange={e => setNewLeadForm({...newLeadForm, service_type: e.target.value})}>
-                      <option value="Bathroom Remodel">Bathroom Remodel</option>
-                      <option value="Kitchen Remodel">Kitchen Remodel</option>
-                      <option value="Basement Finishing">Basement Finishing</option>
-                      <option value="Custom Home">Custom Home</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="f-label">Temperatura Inicial</label>
-                    <select className="f-inp" value={newLeadForm.urgency} onChange={e => setNewLeadForm({...newLeadForm, urgency: e.target.value})}>
-                      <option value="hot">🔥 Quente</option>
-                      <option value="warm">☀️ Morno</option>
-                      <option value="cool">❄️ Frio</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="f-row">
-                  <div>
-                    <label className="f-label">Valor Estimado ($)</label>
-                    <input type="number" className="f-inp" placeholder="Ex: 35000" value={newLeadForm.estimated_value} onChange={e => setNewLeadForm({...newLeadForm, estimated_value: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="f-label">Parceiro Responsável</label>
-                    <select className="f-inp" value={newLeadForm.partner_id} onChange={e => setNewLeadForm({...newLeadForm, partner_id: e.target.value})}>
-                      <option value="">Nenhum (não atribuir)</option>
-                      {partners.map(p => <option key={p.id} value={p.id}>{p.full_name || p.email || 'Parceiro'}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="btn ghost" onClick={() => setIsNewLeadOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn gold">Criar Lead</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <NewLeadModal
+        isOpen={isNewLeadOpen}
+        onClose={() => setIsNewLeadOpen(false)}
+        onSubmit={handleNewLeadSubmit}
+        form={newLeadForm}
+        setForm={setNewLeadForm}
+        partners={partners}
+      />
 
       {/* CONFIRM MODAL */}
       <ConfirmModal

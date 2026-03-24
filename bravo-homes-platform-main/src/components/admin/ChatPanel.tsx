@@ -1,4 +1,6 @@
 import React, { useRef } from 'react';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 interface ChatPanelProps {
   chatPartners: any[];
@@ -36,7 +38,7 @@ export default function ChatPanel({
 }: ChatPanelProps) {
   return (
     <div className="page active" style={{display: 'flex', gap: '16px', height: 'calc(100vh - 80px)'}}>
-      <div className="card" style={{width: '300px', display: 'flex', flexDirection: 'column', height: '100%', padding: '0'}}>
+      <Card className="flex flex-col h-full p-0 flex-shrink-0 w-[300px]">
          <div style={{padding: '16px', borderBottom: '1px solid var(--b)', fontWeight: 700}}>Parceiros (Chat)</div>
          <div style={{flex: 1, overflowY: 'auto'}}>
            {chatPartners.map(p => (
@@ -64,8 +66,8 @@ export default function ChatPanel({
            ))}
            {chatPartners.length === 0 && <div style={{padding: '20px', color: 'var(--t3)', fontSize: '0.85rem', textAlign: 'center'}}>Nenhuma conversa ativa.</div>}
          </div>
-      </div>
-      <div className="card" style={{flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '0'}}>
+      </Card>
+      <Card className="flex flex-col flex-1 h-full p-0 min-w-0">
          {selectedChatUser ? (
            <>
              <div style={{padding: '16px', borderBottom: '1px solid var(--b)', display: 'flex', alignItems: 'center', gap: '10px'}}>
@@ -97,21 +99,21 @@ export default function ChatPanel({
                     <div style={{fontSize: '1.2rem', animation: 'pulsing 1s infinite'}}>🔴</div>
                     <style dangerouslySetInnerHTML={{__html: `@keyframes pulsing { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }`}} />
                     <div>Gravando: {formatTime(recordingTime)}</div>
-                    <div className="u-flex-1"></div>
-                    <button type="button" className="btn ghost" style={{color: 'var(--red)'}} onClick={cancelRecording}>Cancelar</button>
-                    <button type="button" className="btn gold" onClick={stopRecordingAndSend}>Enviar Áudio</button>
+                    <div className="flex-1"></div>
+                    <Button variant="ghost" className="text-danger border-transparent font-medium" onClick={cancelRecording}>Cancelar</Button>
+                    <Button variant="gold" onClick={stopRecordingAndSend}>Enviar Áudio</Button>
                   </div>
                 ) : (
-                  <form onSubmit={handleSendMessage} style={{flex: 1, display: 'flex', gap: '10px'}}>
+                  <form onSubmit={handleSendMessage} style={{flex: 1, display: 'flex', gap: '10px', minWidth: 0}}>
                     <input type="file" ref={fileInputRef} style={{display: 'none'}} onChange={handleFileSelect} />
-                    <button type="button" className="btn ghost" style={{padding: '0 12px', fontSize: '1.2rem'}} onClick={() => fileInputRef.current?.click()} title="Anexar arquivo" disabled={isUploading}>📎</button>
+                    <Button type="button" variant="ghost" className="px-3 text-[1.2rem] border-transparent" onClick={() => fileInputRef.current?.click()} title="Anexar arquivo" disabled={isUploading}>📎</Button>
                     
                     <input type="text" className="f-inp" placeholder={isUploading ? "Enviando arquivo..." : "Digite uma mensagem..."} value={newMessage} onChange={e => setNewMessage(e.target.value)} disabled={isUploading} style={{flex: 1, margin: 0}} />
                     
                     {newMessage.trim() === '' ? (
-                      <button type="button" className="btn ghost" style={{padding: '0 12px', fontSize: '1.2rem', color: 'var(--gold)'}} disabled={isUploading} onClick={startRecording} title="Gravar Áudio">🎤</button>
+                      <Button type="button" variant="ghost" className="px-3 text-[1.2rem] text-gold border-transparent" disabled={isUploading} onClick={startRecording} title="Gravar Áudio">🎤</Button>
                     ) : (
-                      <button type="submit" className="btn gold" style={{padding: '0 20px'}} disabled={isUploading}>Enviar</button>
+                      <Button type="submit" variant="gold" className="px-5" disabled={isUploading}>Enviar</Button>
                     )}
                   </form>
                 )}
@@ -123,7 +125,7 @@ export default function ChatPanel({
               <div>Selecione um parceiro ao lado<br/>para iniciar o chat.</div>
            </div>
          )}
-      </div>
+      </Card>
     </div>
   );
 }

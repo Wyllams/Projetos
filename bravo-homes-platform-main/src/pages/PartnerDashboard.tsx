@@ -12,7 +12,14 @@ import interactionPlugin from '@fullcalendar/interaction';
 import PartnerStagesTab from '../components/partner/PartnerStagesTab';
 import PartnerUploadsTab from '../components/partner/PartnerUploadsTab';
 import PartnerProfileTab from '../components/partner/PartnerProfileTab';
-import './PartnerDashboard.css';
+import PartnerSidebar from '../components/partner/PartnerSidebar';
+import PartnerHeader from '../components/partner/PartnerHeader';
+import PartnerHomeTab from '../components/partner/PartnerHomeTab';
+import PartnerProjectsTab from '../components/partner/PartnerProjectsTab';
+import PartnerDailyLogTab from '../components/partner/PartnerDailyLogTab';
+import PartnerCalendarTab from '../components/partner/PartnerCalendarTab';
+import PartnerLeadsTab from '../components/partner/PartnerLeadsTab';
+import PartnerChatTab from '../components/partner/PartnerChatTab';
 import '../styles/utilities.css';
 
 export default function PartnerDashboard() {
@@ -645,70 +652,19 @@ export default function PartnerDashboard() {
   return (
     <div className="partner-app">
       {/* SIDEBAR */}
-      <nav className={`sb ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sb-brand">
-          <img src={theme === 'light' ? "/Logo atual Bravo.png" : "/Logo Fundo azul.jpeg"} alt="Bravo Homes Group" className="sb-logo" style={{background: 'transparent'}} />
-          <div className="sb-sub">Portal do Parceiro</div>
-        </div>
-        <div className="sb-partner">
-          <div className="av" style={{textTransform:'uppercase',overflow:'hidden',padding:0}}>
-            {profileData?.avatar_url ? (
-              <img src={profileData.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} />
-            ) : (
-              user?.user_metadata?.full_name ? user.user_metadata.full_name.substring(0, 2) : 'P'
-            )}
-          </div>
-          <div>
-            <div className="pname">{user?.user_metadata?.full_name || 'Parceiro(a)'}</div>
-            <div className="prole">Parceiro</div>
-          </div>
-        </div>
-        <div className="sb-nav">
-          <div className="sb-sec">Principal</div>
-          <div className={navItemClass('dashboard')} onClick={() => navTo('dashboard')}>
-            <span className="ni-icon">◈</span>{t('dashboard')}
-          </div>
-
-          <div className="sb-sec">{t('myProjects')}</div>
-          <div className={navItemClass('projects')} onClick={() => navTo('projects')}>
-            <span className="ni-icon">▦</span>{t('activeProjects')}{projects.length > 0 && <span className="badge gold">{projects.length}</span>}
-          </div>
-          <div className={navItemClass('stages')} onClick={() => navTo('stages')}>
-            <span className="ni-icon">☑</span>{t('stagesOfWork')}
-          </div>
-          <div className={navItemClass('calendar')} onClick={() => navTo('calendar')}>
-            <span className="ni-icon">◷</span>{t('calendar')}
-          </div>
-          <div className={navItemClass('dailylog')} onClick={() => navTo('dailylog')}>
-            <span className="ni-icon">📋</span>{t('dailyLog')}
-          </div>
-
-          <div className="sb-sec">{t('messaging')}</div>
-          <div className={navItemClass('leads')} onClick={() => navTo('leads')}>
-            <span className="ni-icon">◎</span>{t('assignedLeads')}{leads.length > 0 && <span className="badge">{leads.length}</span>}
-          </div>
-          <div className={navItemClass('chat')} onClick={() => navTo('chat')}>
-            <span className="ni-icon">💬</span>{t('chat')}
-          </div>
-
-          <div className="sb-sec">{t('files')}</div>
-          <div className={navItemClass('uploads')} onClick={() => navTo('uploads')}>
-            <span className="ni-icon">📷</span>{t('photosDocs')}
-          </div>
-
-          <div className="sb-sec">{t('account')}</div>
-          <div className={navItemClass('profile')} onClick={() => navTo('profile')}>
-            <span className="ni-icon">◉</span>{t('myProfile')}
-          </div>
-        </div>
-        <div className="sb-footer">
-          <div className="logout" style={{textAlign:'center'}} onClick={async () => { localStorage.removeItem('partnerActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}>
-            🚪 {t('logout')}
-          </div>
-        </div>
-      </nav>
-      {/* Mobile sidebar backdrop */}
-      <div className={`sb-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+      <PartnerSidebar
+        theme={theme}
+        profileData={profileData}
+        user={user}
+        activeTab={activeTab}
+        navTo={navTo}
+        projectsCount={projects.length}
+        leadsCount={leads.length}
+        t={t as any}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        handleLogout={async () => { localStorage.removeItem('partnerActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}
+      />
 
       {/* MAIN */}
       <div className="main">
@@ -718,136 +674,41 @@ export default function PartnerDashboard() {
             <span style={{fontSize: '0.85rem'}}>{toastMessage.msg}</span>
           </div>
         )}
-        <div className="topbar">
-          <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-          <div className="topbar-title">
-            {activeTab === 'dashboard' && t('dashboard')}
-            {activeTab === 'projects' && t('myProjects')}
-            {activeTab === 'stages' && t('stagesOfWork')}
-            {activeTab === 'calendar' && t('calendarOfWorks')}
-            {activeTab === 'dailylog' && t('dailyLog')}
-            {activeTab === 'leads' && t('assignedLeads')}
-            {activeTab === 'chat' && t('chat')}
-            {activeTab === 'uploads' && t('photosDocuments')}
-            {activeTab === 'profile' && t('myProfile')}
-          </div>
-          
-
-
-          <div className="topbar-pill">🟢 Online</div>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:'0.65rem',color:'var(--t3)'}}>{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-          
-          {/* Notification Bell */}
-          <div style={{position:'relative'}}>
-            <div onClick={() => setNotifOpen(!notifOpen)} style={{cursor:'pointer',fontSize:'1.2rem',position:'relative',padding:'4px 8px',borderRadius:'8px',background: notifOpen ? 'var(--gold)' : 'transparent',transition:'all .2s'}}>
-              🔔
-              {unreadCount > 0 && (
-                <span style={{position:'absolute',top:'-2px',right:'0',background:'var(--red)',color:'#fff',fontSize:'0.55rem',fontWeight:700,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}>{unreadCount}</span>
-              )}
-            </div>
-            {notifOpen && (
-              <div style={{position:'absolute',top:'100%',right:0,width:'340px',maxHeight:'400px',overflowY:'auto',background:'var(--card)',border:'1px solid var(--b)',borderRadius:'12px',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',zIndex:999,padding:'8px 0',marginTop:'8px'}}>
-                <div style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span style={{fontWeight:700,fontSize:'0.85rem'}}>🔔 Notificações</span>
-                  {unreadCount > 0 && (
-                    <button style={{fontSize:'0.65rem',color:'var(--gold)',background:'none',border:'none',cursor:'pointer',fontWeight:600}} onClick={async () => {
-                      const dbNotifs = notifications.filter(n => !n.read && typeof n.id === 'number');
-                      if (dbNotifs.length > 0) await supabase.from('notifications').update({ read: true }).eq('user_id', user?.id).eq('read', false);
-                      setNotifications(prev => prev.map(n => ({...n, read: true})));
-                    }}>Marcar todas como lidas</button>
-                  )}
-                </div>
-                {notifications.length === 0 ? (
-                  <div style={{padding:'24px',textAlign:'center',color:'var(--t3)',fontSize:'0.8rem'}}>Nenhuma notificação</div>
-                ) : (
-                  notifications.map((n: any) => (
-                    <div key={n.id} onClick={async () => {
-                      if (!n.read) {
-                        if (typeof n.id === 'number') await supabase.from('notifications').update({ read: true }).eq('id', n.id);
-                        setNotifications(prev => prev.map(x => x.id === n.id ? {...x, read: true} : x));
-                      }
-                    }} style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',cursor:'pointer',background: n.read ? 'transparent' : 'rgba(201,148,58,0.08)',transition:'all .2s'}}>
-                      <div style={{fontSize:'0.8rem',fontWeight: n.read ? 400 : 700,color:'var(--text)'}}>{n.title}</div>
-                      <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:'2px'}}>{n.body}</div>
-                      <div style={{fontSize:'0.6rem',color:'var(--t3)',marginTop:'4px'}}>{new Date(n.created_at).toLocaleString('pt-BR')}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="theme-btn" onClick={toggleTheme} title="Alternar tema">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </div>
-        </div>
-        
+        <PartnerHeader
+          theme={theme}
+          toggleTheme={toggleTheme}
+          activeTab={activeTab}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          t={t as any}
+          unreadCount={unreadCount}
+          notifOpen={notifOpen}
+          setNotifOpen={setNotifOpen}
+          notifications={notifications}
+          setNotifications={setNotifications}
+          user={user}
+        />
         <div className="content">
           {/* DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="page active">
-              <div className="kpi-grid">
-                <div className="kpi gold"><div className="kl">Projetos Ativos</div><div className="kv">{projects.length}</div><div className="kc">Em andamento</div></div>
-                <div className="kpi green"><div className="kl">Etapas Criadas</div><div className="kv">{stages.filter(s => new Date(s.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}</div><div className="kc">Esta semana</div></div>
-                <div className="kpi blue"><div className="kl">Mensagens</div><div className="kv">{messages.length}</div><div className="kc">Recebidas</div></div>
-                <div className="kpi orange"><div className="kl">Leads Atribuídos</div><div className="kv">{leads.length}</div><div className="kc">Para você</div></div>
-              </div>
-              <div className="g2">
-                <div className="card">
-                  <div className="ch"><span className="ct">Próximas Atividades</span><span className="ca" onClick={() => setActiveTab('calendar')}>Ver calendário →</span></div>
-                  <div className="cb">
-                    {events.length === 0 && <div style={{padding: '20px', textAlign: 'center', color: 'var(--t2)', fontSize: '0.85rem'}}>Nenhuma atividade agendada.</div>}
-                    {events.slice(0, 4).map(ev => {
-                       const pOpts = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute:'2-digit' } as any;
-                       return (
-                         <div key={ev.id} className="log-item">
-                           <div className="log-date" style={{width: '90px'}}>{new Date(ev.date || ev.start_time).toLocaleString('pt-br', pOpts)}</div>
-                           <div className="log-text"><strong>Agenda</strong> — {ev.title}</div>
-                         </div>
-                       );
-                    })}
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="ch"><span className="ct">Alertas e Logs</span></div>
-                  <div className="cb">
-                    {logs.length === 0 && <div style={{padding: '20px', textAlign: 'center', color: 'var(--t2)', fontSize: '0.85rem'}}>Nenhum alerta recente.</div>}
-                    {logs.slice(0, 4).map(log => (
-                      <div key={log.id} className="alert-item">
-                        <div className="aid light-blue"></div>
-                        <div className="atxt"><strong>Log:</strong> {log.log_text}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PartnerHomeTab
+              projects={projects}
+              stages={stages}
+              messages={messages}
+              leads={leads}
+              events={events}
+              logs={logs}
+              setActiveTab={setActiveTab}
+            />
           )}
 
           {/* PROJECTS */}
           {activeTab === 'projects' && (
-            <div className="page active">
-              <div className="u-section-header">
-                <div><div className="u-mono-label-xs">{projects.length} projetos em andamento</div><div className="u-syne-title u-mt-3">Meus Projetos Ativos</div></div>
-                <button className="btn gold" onClick={handleCreateProject}>Novo Projeto</button>
-              </div>
-              
-              {projects.length === 0 && !loadingDb && (
-                <div className="empty-state" style={{padding: '20px', textAlign: 'center'}}>Nenhum projeto encontrado.</div>
-              )}
-              
-              {projects.map((p: any) => (
-                <div className="proj-card" key={p.id} onClick={() => { setSelectedProject(p); setActiveTab('stages'); }}>
-                  <div className="proj-header">
-                    <div><div className="proj-name">{p.name || 'Projeto sem nome'}</div><div className="proj-service">{p.service_type || 'Serviço'}</div></div>
-                    <span className={`status-badge ${p.status === 'active' ? 'active' : 'pending'}`}>{p.status || 'Ativo'}</span>
-                  </div>
-                  <div className="prog-bar"><div className="prog-fill" style={{width:`${p.progress || 0}%`}}></div></div>
-                  <div className="prog-info"><span>Progresso</span><span style={{color:'var(--gold)'}}>{p.progress || 0}%</span></div>
-                  <div className="proj-meta"><span>📅 Início: {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/D'}</span><span>🏁 Entrega: {p.deadline ? new Date(p.deadline).toLocaleDateString() : 'N/D'}</span><span style={{color:'var(--green)'}}>💰 ${p.contract_value ? Number(p.contract_value).toLocaleString() : '0'}</span></div>
-                </div>
-              ))}
-            </div>
+            <PartnerProjectsTab
+              handleCreateProject={handleCreateProject}
+              setSelectedProject={setSelectedProject}
+              setActiveTab={setActiveTab}
+            />
           )}
 
           {activeTab === 'stages' && (
@@ -869,368 +730,63 @@ export default function PartnerDashboard() {
 
           {/* CALENDAR */}
           {activeTab === 'calendar' && (
-            <div className="page active" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div className="u-section-header">
-                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'1.05rem'}}>Calendário de Obras</div>
-                <button className="btn gold" onClick={() => setIsNewEventOpen(true)}>+ Atividade</button>
-              </div>
-
-              {/* New event form */}
-              {isNewEventOpen && (
-                <div className="card" style={{marginBottom:14,border:'1px solid var(--gold)'}}>
-                  <div className="ch"><span className="ct">➕ Nova Atividade</span><span className="ca" style={{cursor:'pointer'}} onClick={() => setIsNewEventOpen(false)}>✕ Fechar</span></div>
-                  <div className="cb">
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-                      <div>
-                        <label className="u-mono-label">Título *</label>
-                        <input className="f-inp" className="u-w-full" placeholder="Ex: Vistoria da fundação" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="u-mono-label">Projeto (opcional)</label>
-                        <select className="f-inp" className="u-w-full" value={newEvent.project_id} onChange={e => setNewEvent({...newEvent, project_id: e.target.value})}>
-                          <option value="">-- Geral --</option>
-                          {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
-                      <div>
-                        <label className="u-mono-label">Data *</label>
-                        <input className="f-inp" type="date" className="u-w-full" value={newEvent.event_date} onChange={e => setNewEvent({...newEvent, event_date: e.target.value})} />
-                      </div>
-                      <div>
-                        <label className="u-mono-label">Horário</label>
-                        <input className="f-inp" type="time" className="u-w-full" value={newEvent.start_time} onChange={e => setNewEvent({...newEvent, start_time: e.target.value})} />
-                      </div>
-                    </div>
-                    <button className="btn gold" onClick={addEvent}>📅 Agendar Atividade</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="card" style={{ flex: 1, padding: '16px', background: 'var(--bg2)' }}>
-                <style dangerouslySetInnerHTML={{__html: `
-                  .fc { color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.85rem; }
-                  .fc-theme-standard th, .fc-theme-standard td, .fc-theme-standard .fc-scrollgrid { border-color: var(--b); }
-                  .fc-button-primary { background-color: var(--bg3) !important; border-color: var(--b) !important; color: var(--text) !important; text-transform: capitalize; }
-                  .fc-button-primary:hover { background-color: var(--gold) !important; color: #000 !important; border-color: var(--gold) !important; }
-                  .fc-button-active { background-color: var(--gold) !important; color: #000 !important; }
-                  .fc-toolbar-title { font-family: 'Syne', sans-serif; font-size: 1.2rem !important; color: var(--gold); text-transform: capitalize; }
-                  .fc-day-today { background-color: rgba(201, 148, 58, 0.05) !important; }
-                  .fc-event { cursor: pointer; border-radius: 4px; padding: 2px 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
-                  .fc-timegrid-slot-label { color: var(--t2); }
-                  .fc-col-header-cell-cushion { color: var(--t2); text-decoration: none; padding: 8px !important; }
-                `}} />
-                <FullCalendar
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                  initialView="timeGridWeek"
-                  headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                  }}
-                  locale="pt-br"
-                  buttonText={{ today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' }}
-                  events={events.map((e: any) => {
-                    const startStr = e.start_time ? `${e.event_date}T${e.start_time}` : e.event_date;
-                    return {
-                      id: e.id,
-                      title: e.title,
-                      start: startStr,
-                      backgroundColor: 'var(--gold)',
-                      borderColor: 'var(--gold)',
-                      textColor: '#000',
-                    };
-                  })}
-                  editable={true}
-                  droppable={true}
-                  eventDrop={async (info: any) => {
-                    const newDate = info.event.start;
-                    const dateStr = newDate.toISOString().split('T')[0];
-                    const timeStr = newDate.toTimeString().substring(0, 5);
-                    await supabase.from('calendar_events').update({ event_date: dateStr, start_time: timeStr }).eq('id', info.event.id);
-                    setEvents((prev: any[]) => prev.map(ev => ev.id === info.event.id ? { ...ev, event_date: dateStr, start_time: timeStr } : ev));
-                    showToast('Atualizado', 'Evento reagendado!', 'success');
-                  }}
-                  eventClick={(info: any) => {
-                    const ev = info.event;
-                    const startDate = ev.start;
-                    setEditingEvent({
-                      id: ev.id,
-                      title: ev.title,
-                      date: startDate ? startDate.toISOString().substring(0, 10) : '',
-                      time: startDate ? startDate.toTimeString().substring(0, 5) : '00:00',
-                    });
-                  }}
-                  dateClick={(info: any) => {
-                    const clickedDate = info.dateStr?.substring(0, 10) || '';
-                    const clickedTime = info.dateStr?.substring(11, 16) || new Date().toTimeString().substring(0, 5);
-                    setNewEvent({ title: '', event_date: clickedDate, start_time: clickedTime, project_id: '' });
-                    setIsNewEventOpen(true);
-                  }}
-                  height="auto"
-                  slotMinTime="07:00:00"
-                  slotMaxTime="20:00:00"
-                  allDaySlot={true}
-                />
-              </div>
-            </div>
+            <PartnerCalendarTab projects={projects} showToast={showToast} />
           )}
 
           {/* DAILY LOG */}
           {activeTab === 'dailylog' && (
-            <div className="page active">
-              <div className="u-mb-16">
-                <div className="u-mono-label-xs">Registro diário de atividades</div>
-                <div className="u-syne-title u-mt-3">Log Diário de Atividades</div>
-              </div>
-
-              {/* Form */}
-              <div className="card" className="u-mb-14">
-                <div className="ch"><span className="ct">📝 Registrar hoje — {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
-                <div className="cb">
-                  <div style={{marginBottom:12}}>
-                    <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Projeto *</label>
-                    <select className="f-inp" value={logForm.project_id} onChange={e => setLogForm({...logForm, project_id: e.target.value})}>
-                      <option value="">-- Selecione o projeto --</option>
-                      {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
-                    </select>
-                  </div>
-                  <div style={{marginBottom:12}}>
-                    <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>O que foi feito hoje? *</label>
-                    <textarea className="f-inp" style={{resize:'vertical',minHeight:100}} placeholder="Descreva as atividades realizadas hoje na obra..." value={logForm.log_text} onChange={e => setLogForm({...logForm, log_text: e.target.value})}></textarea>
-                  </div>
-                  <div className="u-mb-14">
-                    <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Materiais utilizados</label>
-                    <input className="f-inp" type="text" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})} />
-                  </div>
-                  <button className="btn gold" onClick={submitLog} disabled={isSavingLog} style={{opacity: isSavingLog ? 0.6 : 1}}>
-                    {isSavingLog ? '⏳ Salvando...' : '💾 Salvar log do dia'}
-                  </button>
-                </div>
-              </div>
-
-              {/* History */}
-              <div className="card">
-                <div className="ch"><span className="ct">📚 Histórico de Logs</span><span className="ca">{logs.length} registro(s)</span></div>
-                <div className="cb" style={{padding: logs.length === 0 ? undefined : 0}}>
-                  {logs.length === 0 && <div style={{padding:'20px',textAlign:'center',color:'var(--t3)',fontSize:'0.85rem'}}>Nenhum log submetido ainda. Registre suas atividades diárias acima.</div>}
-                  {logs.map((log: any) => (
-                    <div key={log.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--b)'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{width:8,height:8,borderRadius:'50%',background:'var(--gold)',flexShrink:0}}></div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.7rem',color:'var(--gold)'}}>
-                            {new Date(log.created_at).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            {' • '}
-                            {new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                          {log.project_id && <span style={{fontSize:'0.65rem',background:'var(--gd)',color:'var(--gold)',borderRadius:4,padding:'2px 8px',fontWeight:600}}>{getProjectName(log.project_id)}</span>}
-                        </div>
-                        <button className="btn ghost" style={{fontSize:'0.65rem',padding:'3px 8px',color:'var(--red)'}} onClick={() => deleteLog(log.id)}>🗑</button>
-                      </div>
-                      <div style={{fontSize:'0.85rem',color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap',paddingLeft:16}}>{log.log_text}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PartnerDailyLogTab
+              projects={projects}
+              logs={logs}
+              logForm={logForm}
+              setLogForm={setLogForm}
+              submitLog={submitLog}
+              isSavingLog={isSavingLog}
+              getProjectName={getProjectName}
+              deleteLog={deleteLog}
+            />
           )}
 
           {/* LEADS */}
           {activeTab === 'leads' && (
-            <div className="page active">
-              <div className="u-mb-16">
-                <div className="u-mono-label-xs">{leads.length} leads atribuídos</div>
-                <div className="u-syne-title u-mt-3">Leads Atribuídos</div>
-              </div>
-              
-              {leads.length === 0 && !loadingDb && (
-                <div className="card">
-                  <div className="cb" style={{padding:'30px',textAlign:'center',color:'var(--t3)'}}>
-                    <div className="u-emoji-icon">🎯</div>
-                    <div style={{fontSize:'0.9rem',marginBottom:6}}>Nenhum lead atribuído a você no momento</div>
-                    <div style={{fontSize:'0.75rem'}}>Quando a equipe Bravo encaminhar clientes potenciais, eles aparecerão aqui para você gerenciar</div>
-                  </div>
-                </div>
-              )}
-
-              {leads.map((l: any) => (
-                <div className="card" key={l.id} style={{marginBottom:10,border: expandedLead === l.id ? '1px solid var(--gold)' : undefined}}>
-                  {/* Header - always visible */}
-                  <div style={{padding:'14px 16px',cursor:'pointer',display:'flex',alignItems:'center',gap:12}} onClick={() => setExpandedLead(expandedLead === l.id ? null : l.id)}>
-                    <div style={{width:10,height:10,borderRadius:'50%',background:getUrgencyColor(l.urgency || ''),flexShrink:0}}></div>
-                    <div className="u-flex-1-min">
-                      <div style={{fontWeight:700,fontSize:'0.92rem'}}>{l.name || 'Sem nome'}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)',marginTop:2}}>{l.service_type || 'Serviço'} · {l.city || 'Cidade n/d'} · {l.source || 'Manual'}</div>
-                    </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>
-                      <div style={{fontSize:'0.72rem',fontWeight:600,color:getStatusColor(l.status || 'Novo'),marginBottom:2}}>{l.status || 'Novo'}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)'}}>{l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : ''}</div>
-                    </div>
-                    <span style={{color:'var(--t3)',fontSize:'0.7rem'}}>{expandedLead === l.id ? '▲' : '▼'}</span>
-                  </div>
-
-                  {/* Expanded details */}
-                  {expandedLead === l.id && (
-                    <div style={{padding:'0 16px 16px',borderTop:'1px solid var(--b)'}}>
-                      {/* Contact info */}
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14,marginBottom:14}}>
-                        <div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Telefone</div>
-                          <div style={{fontSize:'0.88rem',fontWeight:600}}>{l.phone || 'Não informado'}</div>
-                        </div>
-                        <div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>E-mail</div>
-                          <div style={{fontSize:'0.88rem',fontWeight:600,wordBreak:'break-all'}}>{l.email || 'Não informado'}</div>
-                        </div>
-                        <div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Urgência</div>
-                          <div style={{fontSize:'0.82rem',fontWeight:600,color:getUrgencyColor(l.urgency || '')}}>
-                            {l.urgency === 'alta' || l.urgency === 'hot' ? '🔴 Alta' : l.urgency === 'media' || l.urgency === 'warm' ? '🟠 Média' : '🟢 Baixa'}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>Serviço</div>
-                          <div style={{fontSize:'0.82rem',fontWeight:600}}>{l.service_type || 'N/D'}</div>
-                        </div>
-                      </div>
-
-                      {/* Quick contact buttons */}
-                      <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
-                        {l.phone && (
-                          <a href={`sms:${l.phone}`} className="btn gold" className="u-btn-link">💬 SMS</a>
-                        )}
-                        {l.phone && (
-                          <a href={`tel:${l.phone}`} className="btn ghost" className="u-btn-link">📞 Call</a>
-                        )}
-                        {l.phone && (
-                          <a href={`https://wa.me/1${l.phone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="btn ghost" className="u-btn-link">📱 WhatsApp</a>
-                        )}
-                        {l.email && (
-                          <a href={`mailto:${l.email}`} className="btn ghost" className="u-btn-link">✉️ E-mail</a>
-                        )}
-                      </div>
-
-                      {/* Status selector */}
-                      <div className="u-mb-14">
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:6}}>Status do Lead</label>
-                        <select className="f-inp" value={l.status || 'Novo'} onChange={e => updateLeadStatus(l.id, e.target.value)}>
-                          {leadStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-
-                      {/* Notes */}
-                      <div className="u-mb-14">
-                        <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.58rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1,display:'block',marginBottom:6}}>Observações</label>
-                        <textarea className="f-inp" style={{resize:'vertical',minHeight:70}} placeholder="Anote informações sobre este lead..." value={leadNotes[l.id] !== undefined ? leadNotes[l.id] : (l.notes || '')} onChange={e => setLeadNotes(prev => ({...prev, [l.id]: e.target.value}))}></textarea>
-                        {leadNotes[l.id] !== undefined && leadNotes[l.id] !== (l.notes || '') && (
-                          <button className="btn gold" style={{marginTop:6,fontSize:'0.72rem',padding:'5px 14px'}} onClick={() => saveLeadNotes(l.id)}>💾 Salvar observações</button>
-                        )}
-                      </div>
-
-                      {/* Delete */}
-                      <div style={{display:'flex',justifyContent:'flex-end'}}>
-                        <button className="btn ghost" style={{fontSize:'0.7rem',padding:'5px 12px',color:'var(--red)'}} onClick={() => deleteLead(l.id)}>🗑 Remover lead</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <PartnerLeadsTab
+              leads={leads}
+              loadingDb={loadingDb}
+              expandedLead={expandedLead}
+              setExpandedLead={setExpandedLead}
+              getUrgencyColor={getUrgencyColor}
+              getStatusColor={getStatusColor}
+              leadStatuses={leadStatuses}
+              updateLeadStatus={updateLeadStatus}
+              leadNotes={leadNotes}
+              setLeadNotes={setLeadNotes}
+              saveLeadNotes={saveLeadNotes}
+              deleteLead={deleteLead}
+            />
           )}
 
           {/* CHAT */}
           {activeTab === 'chat' && (
-            <div className="page active">
-              <div style={{display:'flex',height:'calc(100vh - 100px)',background:'var(--bg2)',border:'1px solid var(--b)',borderRadius:10,overflow:'hidden'}}>
-                {/* Sidebar */}
-                <div style={{width:260,borderRight:'1px solid var(--b)',display:'flex',flexDirection:'column',flexShrink:0}}>
-                  <div style={{padding:'14px 16px',borderBottom:'1px solid var(--b)',fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'0.85rem'}}>Conversas</div>
-                  <div style={{flex:1,overflowY:'auto'}}>
-                    <div onClick={() => setChatTab('admin')} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',cursor:'pointer',background:chatTab === 'admin' ? 'var(--gd)' : 'transparent',borderLeft:`3px solid ${chatTab === 'admin' ? 'var(--gold)' : 'transparent'}`,transition:'all .15s'}}>
-                      <div style={{width:36,height:36,borderRadius:'50%',background:'var(--gd)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',fontWeight:700,color:'var(--gold)',flexShrink:0}}>BH</div>
-                      <div className="u-flex-1-min">
-                        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'0.82rem',fontWeight:600}}>Bravo Homes Admin</div>
-                        <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)'}}>Admin · Suporte / Coordenação</div>
-                      </div>
-                      {messages.filter((m: any) => m.topic === 'admin').length > 0 && <span className="badge gold" style={{fontSize:'0.6rem'}}>{messages.filter((m: any) => m.topic === 'admin').length}</span>}
-                    </div>
-                    {/* Individual client conversations - only those with messages */}
-                    <div style={{padding:'10px 14px 4px',fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',textTransform:'uppercase',letterSpacing:1}}>Clientes ({chatClients.length})</div>
-                    {chatClients.length === 0 && <div style={{padding:'8px 14px',fontSize:'0.75rem',color:'var(--t3)',fontStyle:'italic'}}>Nenhum cliente</div>}
-                    {chatClients.map((c: any) => {
-                      const isSelected = chatTab === 'client' && selectedChatClient?.id === c.id;
-                      const unread = messages.filter((m: any) => m.sender_id === c.id && m.receiver_id === user?.id).length;
-                      return (
-                        <div key={c.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer',background:isSelected ? 'var(--gd)' : 'transparent',borderLeft:`3px solid ${isSelected ? 'var(--gold)' : 'transparent'}`,position:'relative'}} onClick={() => { setChatTab('client'); setSelectedChatClient(c); }}>
-                          <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(46,204,113,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.65rem',fontWeight:700,color:'var(--green)',flexShrink:0}}>{(c.name || 'CL').substring(0,2).toUpperCase()}</div>
-                          <div className="u-flex-1-min">
-                            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:'0.8rem',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.name || 'Cliente'}</div>
-                            <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.62rem',color:'var(--t3)'}}>{c.email || c.phone || ''}</div>
-                          </div>
-                          {unread > 0 && <span className="badge gold" style={{fontSize:'0.55rem'}}>{unread}</span>}
-                          <button title="Apagar conversa" onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(c); }} style={{background:'transparent',border:'none',cursor:'pointer',fontSize:'0.85rem',padding:'4px',color:'var(--t3)',opacity:0.6,transition:'opacity .15s'}} onMouseEnter={e => (e.currentTarget.style.opacity = '1')} onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}>🗑️</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Chat area */}
-                <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
-                  {/* Header */}
-                  <div style={{padding:'14px 18px',borderBottom:'1px solid var(--b)',display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{width:32,height:32,borderRadius:'50%',background:chatTab === 'client' ? 'rgba(46,204,113,0.2)' : 'var(--gd)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.7rem',color:chatTab === 'client' ? 'var(--green)' : 'var(--gold)',flexShrink:0}}>{chatTab === 'client' ? (selectedChatClient?.name || 'CL').substring(0,2).toUpperCase() : 'BH'}</div>
-                    <div className="u-flex-1">
-                      <div style={{fontFamily:"'Syne',sans-serif",fontWeight:700,fontSize:'0.88rem'}}>{chatTab === 'client' ? (selectedChatClient?.name || 'Selecione um cliente') : 'Bravo Homes Admin'}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.68rem',color:'var(--t3)'}}>{chatTab === 'client' ? 'Conversa individual' : 'Admin · Suporte'} · 🟢 Real-time</div>
-                    </div>
-                  </div>
-
-                  {/* Messages */}
-                  <div style={{flex:1,overflowY:'auto',padding:16,display:'flex',flexDirection:'column',gap:10}}>
-                    {channelMessages.length === 0 && <div style={{fontSize:'0.8rem',color:'var(--t3)',textAlign:'center',marginTop:40}}>No messages yet. Start the conversation below. 💬</div>}
-                    {channelMessages.map((m: any) => {
-                      const isMine = m.sender_id === user?.id;
-                      return (
-                        <div key={m.id} style={{alignSelf:isMine ? 'flex-end' : 'flex-start',maxWidth:'70%'}}>
-                          <div style={{background:isMine ? 'var(--gold)' : 'var(--bg3)',color:isMine ? '#000' : 'var(--text)',padding:'10px 14px',borderRadius:isMine ? '12px 12px 2px 12px' : '12px 12px 12px 2px',fontSize:'0.88rem',lineHeight:1.5}}>
-                            {/* Text */}
-                            {(!m.payload?.msg_type || m.payload?.msg_type === 'text') && m.content}
-                            {/* Image */}
-                            {m.payload?.msg_type === 'image' && m.payload?.url && (
-                              <a href={m.payload.url} target="_blank" rel="noreferrer"><img src={m.payload.url} alt="" style={{maxWidth:240,borderRadius:8,display:'block'}} /></a>
-                            )}
-                            {/* File */}
-                            {m.payload?.msg_type === 'file' && m.payload?.url && (
-                              <a href={m.payload.url} target="_blank" rel="noreferrer" style={{color:isMine ? '#000' : 'var(--gold)',textDecoration:'underline',fontWeight:600}}>📎 {m.payload.name || 'Download'}</a>
-                            )}
-                            {/* Audio */}
-                            {m.payload?.msg_type === 'audio' && m.payload?.url && (
-                              <audio controls src={m.payload.url} style={{maxWidth:240}} />
-                            )}
-                          </div>
-                          <div style={{fontFamily:"'DM Mono',monospace",fontSize:'0.55rem',color:'var(--t3)',marginTop:3,textAlign:isMine ? 'right' : 'left'}}>
-                            {m.created_at ? new Date(m.created_at).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'}) : ''}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div ref={chatEndRef} />
-                  </div>
-
-                  {/* Input bar */}
-                  <div style={{padding:'12px 16px',borderTop:'1px solid var(--b)',display:'flex',gap:8,alignItems:'center'}}>
-                    <input ref={chatFileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" className="u-hide" onChange={e => sendChatFile(e.target.files)} />
-                    <button className="btn ghost" style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0}} onClick={() => chatFileRef.current?.click()} title="Attach file">📎</button>
-                    <button className={`btn ${isRecording ? 'gold' : 'ghost'}`} style={{padding:'8px 10px',fontSize:'1rem',flexShrink:0,animation:isRecording ? 'pulse 1s infinite' : 'none'}} onClick={isRecording ? stopRecording : startRecording} title={isRecording ? 'Stop recording' : 'Record audio'}>🎤</button>
-                    <input className="chat-input u-flex-1" placeholder={isRecording ? '🔴 Recording... click mic to stop' : 'Type your message...'} value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatMsg); }}} disabled={isRecording} />
-                    <button className="btn gold" onClick={() => sendMessage(chatMsg)} disabled={isRecording || !chatMsg.trim()}>Send</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PartnerChatTab
+              user={user}
+              chatTab={chatTab}
+              setChatTab={setChatTab}
+              messages={messages}
+              chatClients={chatClients}
+              selectedChatClient={selectedChatClient}
+              setSelectedChatClient={setSelectedChatClient}
+              setDeleteConfirmClient={setDeleteConfirmClient}
+              channelMessages={channelMessages}
+              chatEndRef={chatEndRef}
+              chatFileRef={chatFileRef}
+              sendChatFile={sendChatFile}
+              isRecording={isRecording}
+              stopRecording={stopRecording}
+              startRecording={startRecording}
+              chatMsg={chatMsg}
+              setChatMsg={setChatMsg}
+              sendMessage={sendMessage}
+            />
           )}
 
           {/* Delete conversation confirmation popup */}
@@ -1311,40 +867,7 @@ export default function PartnerDashboard() {
         </div>
       </div>
 
-      {/* EDIT EVENT MODAL */}
-      {editingEvent && (
-        <div className="modal-overlay open" onClick={() => setEditingEvent(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '420px'}}>
-            <div className="modal-head">
-              <div className="modal-title">Editar Agendamento</div>
-              <button className="dclose" onClick={() => setEditingEvent(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div style={{marginBottom:'12px'}}>
-                <label className="u-mono-label">Título</label>
-                <input className="f-inp" className="u-w-full" value={editingEvent.title} onChange={e => setEditingEvent({...editingEvent, title: e.target.value})} />
-              </div>
-              <div className="u-grid-2">
-                <div>
-                  <label className="u-mono-label">Data *</label>
-                  <input className="f-inp" type="date" className="u-w-full" value={editingEvent.date} onChange={e => setEditingEvent({...editingEvent, date: e.target.value})} />
-                </div>
-                <div>
-                  <label className="u-mono-label">Horário *</label>
-                  <input className="f-inp" type="time" className="u-w-full" value={editingEvent.time} onChange={e => setEditingEvent({...editingEvent, time: e.target.value})} />
-                </div>
-              </div>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',padding:'16px 20px',borderTop:'1px solid var(--b)'}}>
-              <button className="btn" style={{background:'transparent',border:'1px solid rgba(231,76,60,0.5)',color:'var(--red)'}} onClick={handleEditEventDelete}>🗑️ Excluir</button>
-              <div style={{display:'flex',gap:'8px'}}>
-                <button className="btn ghost" onClick={() => setEditingEvent(null)}>Cancelar</button>
-                <button className="btn gold" onClick={handleEditEventSave}>Salvar Alterações</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* NOVO PROJETO MODAL */}
       {isNewProjectOpen && (

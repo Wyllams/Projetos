@@ -1,4 +1,7 @@
 import type { Lead } from '../../types';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -24,28 +27,28 @@ export default function EventModal({ isOpen, onClose, onSubmit, eventForm, setEv
             <div className="u-grid-2col">
               <div>
                 <label className="f-label">Lead Associado (Opcional)</label>
-                <select className="f-inp" value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
+                <Select value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
                   <option value="">— Nenhum Lead —</option>
                   {leads.map(l => <option key={l.id} value={l.id}>{l.clients?.name || l.name} — {l.service_type}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="f-label">Título do Evento</label>
-                <input className="f-inp" value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} placeholder="Ex: Vistoria Inicial" />
+                <Input value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} placeholder="Ex: Vistoria Inicial" />
               </div>
               <div>
                 <label className="f-label">Data</label>
-                <input className="f-inp" type="date" required value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} />
+                <Input type="date" required value={eventForm.date} onChange={e => setEventForm({...eventForm, date: e.target.value})} />
               </div>
               <div>
                 <label className="f-label">Horário</label>
-                <input className="f-inp" type="time" required value={eventForm.time} onChange={e => setEventForm({...eventForm, time: e.target.value})} />
+                <Input type="time" required value={eventForm.time} onChange={e => setEventForm({...eventForm, time: e.target.value})} />
               </div>
             </div>
           </div>
           <div className="modal-foot">
-            <button type="button" className="btn ghost" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn gold">Criar Agendamento</button>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" variant="gold">Criar Agendamento</Button>
           </div>
         </form>
       </div>

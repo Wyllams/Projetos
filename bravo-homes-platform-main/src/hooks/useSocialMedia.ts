@@ -94,7 +94,7 @@ export function useSocialMedia() {
         const fbAccount = socialAccounts.find(a => a.platform === 'facebook');
         if (fbAccount) {
           let fbUrl = `https://graph.facebook.com/v21.0/${fbAccount.page_id}`;
-          let fbBody: Record<string, string> = { access_token: fbAccount.access_token };
+          const fbBody: Record<string, string> = { access_token: fbAccount.access_token };
           
           if (socialPostForm.image_url) {
             fbUrl += '/photos';
