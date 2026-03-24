@@ -171,7 +171,7 @@ export default function PartnerCalendarTab({ projects, showToast }: PartnerCalen
           }}
           height="auto"
           slotMinTime="07:00:00"
-          slotMaxTime="20:00:00"
+          slotMaxTime="24:00:00"
           allDaySlot={true}
         />
       </div>

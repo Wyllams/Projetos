@@ -7,7 +7,7 @@
 .sidebar{width:220px;min-width:220px;height:100vh;background:var(--bg2);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;transition:width .3s}
 .sidebar-logo{padding:20px 18px 14px;border-bottom:1px solid var(--b)}
 .sidebar-logo .brand-img{display:block;width:140px;height:auto;border-radius:8px}
-[data-theme="light"] .sidebar-logo .brand-img{content:url('Logo atual Bravo.png')}
+[data-theme="light"] .sidebar-logo .brand-img { content: url('/Logo atual Bravo.png'); }
 .sidebar-logo .sub{font-size:12px;color:var(--text);letter-spacing:.06em;text-transform:uppercase;margin-top:4px;opacity:0.7}
 .client-card{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px}
 .client-avatar{width:36px;height:36px;border-radius:50%;background:var(--gd);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold);flex-shrink:0}

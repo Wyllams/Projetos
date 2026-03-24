@@ -58,7 +58,7 @@ export default function CalendarTab({
             }}
             height="100%"
             slotMinTime="07:00:00"
-            slotMaxTime="20:00:00"
+            slotMaxTime="24:00:00"
             allDaySlot={true}
          />
       </Card>
