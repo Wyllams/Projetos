@@ -19,7 +19,7 @@ export default function PartnersTab({
     <div className="page active">
       <div className="u-section-header">
         <div className="u-syne-title">{t('partnersAndContractors')}</div>
-        <Button variant="ghost" onClick={() => setIsPartnerOpen(true)}>{t('addPartnerBtn')}</Button>
+        <Button variant="gold" onClick={() => setIsPartnerOpen(true)}>{t('addPartnerBtn')}</Button>
       </div>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
