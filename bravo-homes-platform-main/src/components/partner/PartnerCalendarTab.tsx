@@ -78,35 +78,41 @@ export default function PartnerCalendarTab({ projects, showToast }: PartnerCalen
 
       {/* New event form */}
       {isNewEventOpen && (
-        <div className="card" style={{marginBottom:14,border:'1px solid var(--gold)'}}>
-          <div className="ch"><span className="ct">➕ Nova Atividade</span><span className="ca" style={{cursor:'pointer'}} onClick={() => setIsNewEventOpen(false)}>✕ Fechar</span></div>
-          <div className="cb">
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-              <div>
+        <div className="modal-overlay open" onClick={() => setIsNewEventOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px', zIndex: 1000}}>
+            <div className="modal-head">
+              <div className="modal-title">Nova Atividade</div>
+              <button className="dclose" onClick={() => setIsNewEventOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{marginBottom:'15px'}}>
                 <label className="u-mono-label">Título *</label>
                 <input className="f-inp u-w-full" placeholder="Ex: Vistoria da fundação" value={newEvent.title} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
               </div>
-              <div>
+              <div style={{marginBottom:'15px'}}>
                 <label className="u-mono-label">Projeto (opcional)</label>
                 <select className="f-inp u-w-full" value={newEvent.project_id} onChange={e => setNewEvent({...newEvent, project_id: e.target.value})}>
                   <option value="" disabled>-- Selecione --</option>
                   {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
-              <div>
-                <label className="u-mono-label">Data *</label>
-                <input className="f-inp u-w-full" type="date" value={newEvent.event_date} onChange={e => setNewEvent({...newEvent, event_date: e.target.value})} />
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:15,marginBottom:'20px'}}>
+                <div>
+                  <label className="u-mono-label">Data *</label>
+                  <input className="f-inp u-w-full" type="date" value={newEvent.event_date} onChange={e => setNewEvent({...newEvent, event_date: e.target.value})} />
+                </div>
+                <div>
+                  <label className="u-mono-label">Horário</label>
+                  <input className="f-inp u-w-full" type="time" value={newEvent.start_time} onChange={e => setNewEvent({...newEvent, start_time: e.target.value})} />
+                </div>
               </div>
-              <div>
-                <label className="u-mono-label">Horário</label>
-                <input className="f-inp u-w-full" type="time" value={newEvent.start_time} onChange={e => setNewEvent({...newEvent, start_time: e.target.value})} />
+              <div style={{display: 'flex', gap: '15px', marginTop: '30px'}}>
+                 <button type="button" className="btn ghost" style={{flex: 1, padding: '12px', fontSize: '0.95rem'}} onClick={() => setIsNewEventOpen(false)}>Cancelar</button>
+                 <button type="button" className="btn gold" style={{flex: 1, padding: '12px', fontSize: '0.95rem'}} onClick={handleAddEvent} disabled={addEventMut.isPending}>
+                   {addEventMut.isPending ? 'Agendando...' : 'Agendar Atividade'}
+                 </button>
               </div>
             </div>
-            <button className="btn gold" onClick={handleAddEvent} disabled={addEventMut.isPending}>
-               {addEventMut.isPending ? 'Agendando...' : '📅 Agendar Atividade'}
-            </button>
           </div>
         </div>
       )}
