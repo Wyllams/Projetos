@@ -198,6 +198,8 @@ const T: Translations = {
   calMonth: { 'pt-BR': 'Mês', 'en-US': 'Month', es: 'Mes' },
   calWeek: { 'pt-BR': 'Semana', 'en-US': 'Week', es: 'Semana' },
   calDay: { 'pt-BR': 'Dia', 'en-US': 'Day', es: 'Día' },
+  googleConnected: { 'pt-BR': 'Google Conectado', 'en-US': 'Google Connected', es: 'Google Conectado' },
+  disconnectGoogleBtn: { 'pt-BR': 'Desconectar', 'en-US': 'Disconnect', es: 'Desconectar' },
   month: { 'pt-BR': 'Mês', 'en-US': 'Month', es: 'Mes' },
   week: { 'pt-BR': 'Semana', 'en-US': 'Week', es: 'Semana' },
   day: { 'pt-BR': 'Dia', 'en-US': 'Day', es: 'Día' },

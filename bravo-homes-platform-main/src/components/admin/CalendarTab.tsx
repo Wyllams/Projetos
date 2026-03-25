@@ -4,11 +4,13 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useLanguage } from '../../lib/i18n';
 import { Button } from '../ui/Button';
-import { Card, CardContent } from '../ui/Card';
+import { Card } from '../ui/Card';
 import '../../styles/fullcalendar.css';
 
 interface CalendarTabProps {
   handleGoogleSync: () => void;
+  handleGoogleDisconnect: () => void;
+  isGoogleLinked: boolean;
   setEventForm: (form: any) => void;
   setIsEventModalOpen: (v: boolean) => void;
   mapEventsForCalendar: () => any[];
@@ -17,7 +19,7 @@ interface CalendarTabProps {
 }
 
 export default function CalendarTab({
-  handleGoogleSync, setEventForm, setIsEventModalOpen,
+  handleGoogleSync, handleGoogleDisconnect, isGoogleLinked, setEventForm, setIsEventModalOpen,
   mapEventsForCalendar, handleEventDrop, handleEventClick,
 }: CalendarTabProps) {
   const { t, lang } = useLanguage();
@@ -26,10 +28,22 @@ export default function CalendarTab({
       <div className="u-section-header">
         <div className="u-syne-title">{t('calendarTitle')}</div>
         <div className="u-flex-gap-8">
-          <Button variant="ghost" onClick={handleGoogleSync} aria-label={t('syncGoogleAria') as string} style={{display:'flex', alignItems:'center', gap:'6px'}}>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style={{width:'14px'}} alt="Google Calendar" />
-            {t('syncGoogleBtn')}
-          </Button>
+          {isGoogleLinked ? (
+            <>
+              <Button variant="ghost" onClick={handleGoogleSync} style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--green, #2ecc71)', borderColor:'rgba(46,204,113,0.3)'}}>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style={{width:'14px'}} alt="Google Calendar" />
+                ✓ {t('googleConnected')}
+              </Button>
+              <Button variant="ghost" onClick={handleGoogleDisconnect} style={{fontSize:'0.75rem', color:'var(--red, #e74c3c)', borderColor:'rgba(231,76,60,0.3)'}}>
+                {t('disconnectGoogleBtn')}
+              </Button>
+            </>
+          ) : (
+            <Button variant="ghost" onClick={handleGoogleSync} aria-label={t('syncGoogleAria') as string} style={{display:'flex', alignItems:'center', gap:'6px'}}>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" style={{width:'14px'}} alt="Google Calendar" />
+              {t('syncGoogleBtn')}
+            </Button>
+          )}
           <Button variant="gold" aria-label="Criar novo evento" onClick={() => {
              setEventForm({ lead_id: '', date: '', time: '00:00', title: '' });
              setIsEventModalOpen(true);

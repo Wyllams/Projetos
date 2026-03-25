@@ -165,6 +165,11 @@
 .f-inp{width:100%;background:var(--bg3);border:1px solid var(--b);border-radius:6px;padding:9px 12px;color:var(--text);font-size:0.82rem;font-family:'Inter',sans-serif;outline:none}
 .f-inp:focus{border-color:var(--gold)}
 select.f-inp option{background:var(--bg3);color:var(--text)}
+input[type="date"].f-inp,input[type="time"].f-inp{position:relative}
+input[type="date"].f-inp::-webkit-calendar-picker-indicator,
+input[type="time"].f-inp::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.7;cursor:pointer}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.7;cursor:pointer}
 .f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 /* CHAT */
 .chat-wrap{display:flex;flex-direction:column;height:100%}

@@ -395,35 +395,89 @@ export default function AdminDashboard() {
 
   // Google Calendar States
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
-  const [_isGoogleLinked, setIsGoogleLinked] = useState(false);
+  const [isGoogleLinked, setIsGoogleLinked] = useState(() => localStorage.getItem('google_calendar_linked') === 'true');
 
   // --- GOOGLE REST API HANDLERS ---
   const handleGoogleSync = async () => {
+    // If already linked, just try to refresh the token from the session
+    if (isGoogleLinked) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.provider_token) {
+        localStorage.setItem('google_provider_token', session.provider_token);
+        fetchGoogleEvents(session.provider_token);
+        showToast('Google Calendar sincronizado!');
+      } else {
+        const storedToken = localStorage.getItem('google_provider_token');
+        if (storedToken) {
+          fetchGoogleEvents(storedToken);
+          showToast('Google Calendar sincronizado!');
+        } else {
+          showToast('Sessão expirada, reconectando...');
+          localStorage.removeItem('google_calendar_linked');
+          setIsGoogleLinked(false);
+          handleGoogleSync();
+        }
+      }
+      return;
+    }
     try {
-      showToast("Redirecionando para o Google...");
-      const { error } = await supabase.auth.linkIdentity({
+      showToast("Conectando ao Google Calendar...");
+      
+      // Use signInWithOAuth with skipBrowserRedirect to get the URL without redirecting
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
           queryParams: { access_type: 'offline', prompt: 'consent' },
-          redirectTo: window.location.origin + '/admin'
+          redirectTo: window.location.origin + '/admin',
+          skipBrowserRedirect: true
         }
       });
-      if (error) {
-         console.warn("LinkIdentity falhou, tentando signIn direto", error);
-         await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-              queryParams: { access_type: 'offline', prompt: 'consent' },
-              redirectTo: window.location.origin + '/admin'
-            }
-         });
+      
+      if (error || !data?.url) {
+        showToast("Erro ao gerar link do Google: " + (error?.message || 'URL não gerada'));
+        return;
       }
+      
+      // Open centered popup
+      const w = 500, h = 650;
+      const left = window.screenX + (window.innerWidth - w) / 2;
+      const top = window.screenY + (window.innerHeight - h) / 2;
+      const popup = window.open(
+        data.url,
+        'googleCalendarAuth',
+        `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`
+      );
+      
+      // Listen for popup close and check for new session
+      const checkInterval = setInterval(async () => {
+        if (!popup || popup.closed) {
+          clearInterval(checkInterval);
+          // Check if auth was successful
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.provider_token) {
+            localStorage.setItem('google_provider_token', session.provider_token);
+            localStorage.setItem('google_calendar_linked', 'true');
+            localStorage.removeItem('google_calendar_disconnected');
+            setIsGoogleLinked(true);
+            fetchGoogleEvents(session.provider_token);
+            showToast('✅ Google Calendar conectado!');
+          }
+        }
+      }, 500);
     } catch (err: any) {
       console.error(err);
       showToast("Erro ao conectar Google: " + err.message);
     }
+  };
+
+  const handleGoogleDisconnect = () => {
+    localStorage.removeItem('google_provider_token');
+    localStorage.removeItem('google_calendar_linked');
+    localStorage.setItem('google_calendar_disconnected', 'true');
+    setIsGoogleLinked(false);
+    setGoogleEvents([]);
+    showToast('Google Calendar desconectado.');
   };
 
   const fetchGoogleEvents = async (token: string) => {
@@ -485,17 +539,16 @@ export default function AdminDashboard() {
       
       const { data: sessionData } = await supabase.auth.getSession();
       const providerToken = sessionData.session?.provider_token;
-      if (providerToken) {
+      const wasDisconnected = localStorage.getItem('google_calendar_disconnected') === 'true';
+      if (providerToken && !wasDisconnected) {
          localStorage.setItem('google_provider_token', providerToken);
+         localStorage.setItem('google_calendar_linked', 'true');
+         setIsGoogleLinked(true);
       }
 
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
          setUser(currentUser);
-         setAdminName(currentUser.user_metadata?.full_name || 'Admin');
-         setAdminEmail(currentUser.email || '');
-         setAdminPhone(currentUser.user_metadata?.phone || '');
-         // phone from profile will be loaded below after profile fetch
          
          const { data: profile, error: profError } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
          
@@ -506,14 +559,19 @@ export default function AdminDashboard() {
                if (profile.role === 'cliente') { navigate('/client', { replace: true }); return; }
                navigate('/', { replace: true }); return;
              }
+            // PRIORITIZE profile data over Google metadata to avoid overriding user's chosen name/photo
             setUserProfile({
                ...profile,
-               avatar_url: currentUser.user_metadata?.avatar_url || profile.avatar_url,
-               full_name: currentUser.user_metadata?.full_name || profile.full_name
+               avatar_url: profile.avatar_url || currentUser.user_metadata?.avatar_url,
+               full_name: profile.full_name || currentUser.user_metadata?.full_name
             });
-             if (profile.phone) setAdminPhone(profile.phone);
+            setAdminName(profile.full_name || currentUser.user_metadata?.full_name || 'Admin');
+            setAdminEmail(currentUser.email || '');
+            setAdminPhone(profile.phone || currentUser.user_metadata?.phone || '');
          } else {
-            // Se a tabela 'profiles' não existir, joga a foto salva nos metadados do auth
+            setAdminName(currentUser.user_metadata?.full_name || 'Admin');
+            setAdminEmail(currentUser.email || '');
+            setAdminPhone(currentUser.user_metadata?.phone || '');
             setUserProfile({ id: currentUser.id, role: 'admin', avatar_url: currentUser.user_metadata?.avatar_url, full_name: currentUser.user_metadata?.full_name || 'Admin' } as Profile);
             if (profError) console.warn('Sem perfil público detectado:', profError.message);
          }
@@ -536,20 +594,18 @@ export default function AdminDashboard() {
       await loadSocialData();
       setLoadingDb(false);
       
-      const storedToken = localStorage.getItem('google_provider_token');
-      if (storedToken) {
+      // Auto-sync Google Calendar if previously linked
+      const isLinked = localStorage.getItem('google_calendar_linked') === 'true';
+      if (isLinked) {
          setIsGoogleLinked(true);
-         fetchGoogleEvents(storedToken);
+         // Try session token first, then stored token
+         const { data: { session: tokenSession } } = await supabase.auth.getSession();
+         const activeToken = tokenSession?.provider_token || localStorage.getItem('google_provider_token');
+         if (activeToken) {
+            localStorage.setItem('google_provider_token', activeToken);
+            fetchGoogleEvents(activeToken);
+         }
       }
-
-      // Restore session tokens if they just returned from Google Auth
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.provider_token) {
-           localStorage.setItem('google_provider_token', session.provider_token);
-           setIsGoogleLinked(true);
-           fetchGoogleEvents(session.provider_token);
-        }
-      });
     }
     fetchData();
 
@@ -603,8 +659,9 @@ export default function AdminDashboard() {
       .subscribe();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.provider_token) {
+        if (session?.provider_token && localStorage.getItem('google_calendar_disconnected') !== 'true') {
            localStorage.setItem('google_provider_token', session.provider_token);
+           localStorage.setItem('google_calendar_linked', 'true');
            setIsGoogleLinked(true);
            fetchGoogleEvents(session.provider_token);
         }
@@ -732,7 +789,9 @@ export default function AdminDashboard() {
         console.error("Erro ao deletar cliente:", error);
         showToast("Erro ao excluir cliente: " + error.message);
       } else {
+        setClients(prev => prev.filter(c => c.id !== clientId));
         queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
+        showToast('Cliente excluído com sucesso!');
       }
     });
   };
@@ -1413,6 +1472,8 @@ export default function AdminDashboard() {
           {activeTab === 'calendar' && (
             <CalendarTab
               handleGoogleSync={handleGoogleSync}
+              handleGoogleDisconnect={handleGoogleDisconnect}
+              isGoogleLinked={isGoogleLinked}
               setEventForm={setEventForm}
               setIsEventModalOpen={setIsEventModalOpen}
               mapEventsForCalendar={mapEventsForCalendar}
@@ -1877,11 +1938,20 @@ export default function AdminDashboard() {
             </div>
             <div className="modal-foot">
               <button className="btn" style={{background: 'transparent', border: '1px solid rgba(231,76,60,0.3)', color: 'var(--red)'}} onClick={() => {
-                 showConfirm('Excluir este parceiro?', async () => {
-                    await supabase.from('profiles').delete().eq('id', selectedPartner.id);
+                 showConfirm('Excluir este parceiro? Isso removerá permanentemente do sistema.', async () => {
+                    // Remove associated leads, messages, notifications first
+                    await supabase.from('leads').update({ partner_id: null }).eq('partner_id', selectedPartner.id);
+                    await supabase.from('messages').delete().or(`sender_id.eq.${selectedPartner.id},receiver_id.eq.${selectedPartner.id}`);
+                    await supabase.from('notifications').delete().eq('user_id', selectedPartner.id);
+                    const { error } = await supabase.from('profiles').delete().eq('id', selectedPartner.id);
+                    if (error) {
+                      showToast('Erro ao excluir parceiro: ' + error.message);
+                      return;
+                    }
                     setPartners(prev => prev.filter(p => p.id !== selectedPartner.id));
                     setSelectedPartner(null);
                     setEditPartner(null);
+                    showToast('Parceiro removido com sucesso!');
                  });
               }}>Remover Parceiro</button>
               {editPartner ? (
