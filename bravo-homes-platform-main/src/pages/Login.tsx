@@ -24,8 +24,7 @@ export default function Login() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showEmailPopup, setShowEmailPopup] = useState(false);
   
-  const handleProfileSelect = (role: 'admin' | 'parceiro') => {
-    setSelectedRole(role);
+  const handleProfileSelect = () => {
     setActiveView('login');
   };
 
@@ -46,15 +45,31 @@ export default function Login() {
     }
 
     // Fetch role from profiles table
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', data.user.id)
       .single();
 
+    // Se o profile não existe (trigger falhou ou não existe), cria agora Just-In-Time
+    if (!profile) {
+      const roleFromMeta = data.user.user_metadata?.role || 'cliente';
+      const nameFromMeta = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Usuário';
+
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        full_name: nameFromMeta,
+        email: data.user.email,
+        role: roleFromMeta
+      });
+
+      profile = { role: roleFromMeta };
+    }
+
     setLoading(false);
 
     const role = profile?.role || 'cliente';
+    // Adicionei um pequeno delay caso a inserção não esteja pronta na sessão imediatamente
     if (role === 'admin') navigate('/admin');
     else if (role === 'parceiro') navigate('/partner');
     else navigate('/client');
@@ -101,7 +116,7 @@ export default function Login() {
           <div className={`view ${activeView === 'profile' ? 'active' : 'exit-left'}`}>
             <h2 className="profile-title">Selecione seu acesso</h2>
             <div className="profile-cards">
-              <div className="profile-card" onClick={() => handleProfileSelect('parceiro')}>
+              <div className="profile-card" onClick={handleProfileSelect}>
                 <div className="pc-icon">👷</div>
                 <div className="pc-info">
                   <h3>Sou Parceiro</h3>
@@ -109,7 +124,7 @@ export default function Login() {
                 </div>
                 <div className="pc-arrow">➔</div>
               </div>
-              <div className="profile-card" onClick={() => handleProfileSelect('admin')}>
+              <div className="profile-card" onClick={handleProfileSelect}>
                 <div className="pc-icon">💼</div>
                 <div className="pc-info">
                   <h3>Sou Admin</h3>
