@@ -10,9 +10,10 @@ import { supabase } from '../../lib/supabase';
 interface PartnerCalendarTabProps {
   projects: any[];
   showToast: (title: string, msg: string, type?: 'success'|'error') => void;
+  user?: any;
 }
 
-export default function PartnerCalendarTab({ projects, showToast }: PartnerCalendarTabProps) {
+export default function PartnerCalendarTab({ projects, showToast, user }: PartnerCalendarTabProps) {
   const { data: events = [], isLoading } = usePartnerEvents();
   const queryClient = useQueryClient();
 
@@ -22,7 +23,8 @@ export default function PartnerCalendarTab({ projects, showToast }: PartnerCalen
 
   const addEventMut = useMutation({
     mutationFn: async (eventData: any) => {
-      const { error } = await supabase.from('calendar_events').insert([eventData]);
+      const payload = { ...eventData, user_id: user?.id };
+      const { error } = await supabase.from('calendar_events').insert([payload]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -30,6 +32,9 @@ export default function PartnerCalendarTab({ projects, showToast }: PartnerCalen
       showToast('Sucesso', 'Atividade agendada!', 'success');
       setIsNewEventOpen(false);
       setNewEvent({ title: '', event_date: '', start_time: '00:00', project_id: '' });
+    },
+    onError: (err: any) => {
+      showToast('Erro', err.message || 'Falha ao agendar', 'error');
     }
   });
 

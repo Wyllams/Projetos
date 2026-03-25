@@ -732,7 +732,7 @@ export default function PartnerDashboard() {
 
           {/* CALENDAR */}
           {activeTab === 'calendar' && (
-            <PartnerCalendarTab projects={projects} showToast={showToast} />
+            <PartnerCalendarTab projects={projects} showToast={showToast} user={user} />
           )}
 
           {/* DAILY LOG */}
