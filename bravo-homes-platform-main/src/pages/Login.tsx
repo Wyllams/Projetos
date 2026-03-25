@@ -19,6 +19,7 @@ export default function Login() {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regRole, setRegRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showEmailPopup, setShowEmailPopup] = useState(false);
@@ -70,6 +71,7 @@ export default function Login() {
       options: {
         data: {
           full_name: regName,
+          role: regRole || 'cliente'
         }
       }
     });
@@ -196,7 +198,13 @@ export default function Login() {
                 </div>
                 <div className="form-group">
                   <label>{t('profileLabel')}</label>
-                  <select className="form-control" required style={{ cursor: 'pointer' }}>
+                  <select 
+                    className="form-control" 
+                    value={regRole}
+                    onChange={(e) => setRegRole(e.target.value)}
+                    required 
+                    style={{ cursor: 'pointer' }}
+                  >
                     <option value="" disabled>-- Selecione --</option>
                     <option value="parceiro">{t('partnerContractor')}</option>
                     <option value="cliente">{t('client')}</option>
