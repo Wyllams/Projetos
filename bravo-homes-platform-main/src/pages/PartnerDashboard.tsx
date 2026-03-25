@@ -21,6 +21,7 @@ import PartnerCalendarTab from '../components/partner/PartnerCalendarTab';
 import PartnerLeadsTab from '../components/partner/PartnerLeadsTab';
 import PartnerChatTab from '../components/partner/PartnerChatTab';
 import '../styles/utilities.css';
+import './PartnerDashboard.css';
 
 export default function PartnerDashboard() {
   const navigate = useNavigate();
