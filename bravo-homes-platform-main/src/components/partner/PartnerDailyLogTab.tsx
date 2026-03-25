@@ -9,10 +9,15 @@ interface PartnerDailyLogTabProps {
   isSavingLog: boolean;
   getProjectName: (id: string) => string;
   deleteLog: (id: string) => void;
+  logPhotos?: any[];
+  handleFileUpload?: (files: FileList | null, stageId?: string | null, logId?: string | null, projectId?: string | null) => void;
+  deleteFile?: (f: any) => void;
+  isUploading?: boolean;
 }
 
 export default function PartnerDailyLogTab({
-  projects, logs, logForm, setLogForm, submitLog, isSavingLog, getProjectName, deleteLog
+  projects, logs, logForm, setLogForm, submitLog, isSavingLog, getProjectName, deleteLog,
+  logPhotos = [], handleFileUpload, deleteFile, isUploading = false
 }: PartnerDailyLogTabProps) {
   return (
     <div className="page active">
@@ -66,6 +71,31 @@ export default function PartnerDailyLogTab({
                 <button className="btn ghost" style={{fontSize:'0.65rem',padding:'3px 8px',color:'var(--red)'}} onClick={() => deleteLog(log.id)}>🗑</button>
               </div>
               <div style={{fontSize:'0.85rem',color:'var(--text)',lineHeight:1.6,whiteSpace:'pre-wrap',paddingLeft:16}}>{log.log_text}</div>
+              
+              {/* Stage-specific Photos Mini-Gallery */}
+              {(() => {
+                 const currentLogPhotos = logPhotos?.filter((p: any) => p.log_id === log.id && p.file_type?.startsWith('image/')) || [];
+                 return (
+                   <div style={{paddingLeft:16, marginTop:8}}>
+                      {currentLogPhotos.length > 0 && (
+                        <div style={{display:'flex',gap:12,overflowX:'auto',padding:'6px 4px 6px 4px'}}>
+                          {currentLogPhotos.map((photo: any) => (
+                            <div key={photo.id} style={{width:60,height:60,borderRadius:6,backgroundImage:`url(${photo.file_url})`,backgroundSize:'cover',backgroundPosition:'center',flexShrink:0,position:'relative'}}>
+                               <button style={{position:'absolute',top:-6,right:-6,background:'var(--bg2)',border:'1px solid var(--red)',color:'var(--red)',width:20,height:20,borderRadius:'50%',fontSize:'0.65rem',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}} onClick={(e) => { e.stopPropagation(); deleteFile?.(photo); }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{marginTop: currentLogPhotos.length > 0 ? 4 : 4}}>
+                        <input type="file" multiple accept="image/*" id={`file_log_${log.id}`} className="u-hide" onChange={e => { if(e.target.files) handleFileUpload?.(e.target.files, null, log.id, log.project_id); }} />
+                        <button className="btn ghost" style={{fontSize:'0.7rem',padding:'4px 12px',opacity: isUploading ? 0.5 : 1}} disabled={isUploading} onClick={() => document.getElementById(`file_log_${log.id}`)?.click()}>
+                           {isUploading ? '⌛ Enviando fotos...' : '📷 Anexar fotos nesta vistoria'}
+                        </button>
+                      </div>
+                   </div>
+                 );
+              })()}
+
             </div>
           ))}
         </div>

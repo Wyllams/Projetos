@@ -886,13 +886,19 @@ export default function AdminDashboard() {
 
       const { data: { publicUrl } } = supabase.storage.from('chat_attachments').getPublicUrl(filePath);
 
+      const isImg = fileType.startsWith('image/');
+      const isAudio = fileType.startsWith('audio/');
+      
       const { error: msgError } = await supabase.from('messages').insert([{
         sender_id: user.id,
         receiver_id: selectedChatUser.id,
-        content: `[${fileType.split('/')[0].toUpperCase()}]`,
-        file_url: publicUrl,
-        file_name: fileName,
-        file_type: fileType
+        content: isImg ? '🖼️ Imagem' : (isAudio ? '🎤 Mensagem de Áudio' : `📎 ${fileName}`),
+        payload: {
+          msg_type: isImg ? 'image' : (isAudio ? 'audio' : 'file'),
+          url: publicUrl,
+          name: fileName,
+          type: fileType
+        }
       }]);
 
       if (msgError) throw msgError;
@@ -1031,40 +1037,34 @@ export default function AdminDashboard() {
   };
 
   const renderMessageContent = (msg: any) => {
-    if (!msg.file_url) return msg.content;
-    
-    const isImage = msg.file_type?.startsWith('image/');
-    const isVideo = msg.file_type?.startsWith('video/');
-    const isAudio = msg.file_type?.startsWith('audio/');
+    const isImage = msg.payload?.msg_type === 'image';
+    const isAudio = msg.payload?.msg_type === 'audio';
+    const isFile = msg.payload?.msg_type === 'file';
 
-    if (isImage) {
+    if (isImage && msg.payload?.url) {
       return (
         <div>
-          <img src={msg.file_url} alt={msg.file_name} style={{maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', cursor: 'pointer', marginTop: '4px'}} onClick={() => window.open(msg.file_url, '_blank')} />
+          <img src={msg.payload.url} alt={msg.payload.name || 'Imagem'} style={{maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', cursor: 'pointer', marginTop: '4px'}} onClick={() => window.open(msg.payload.url, '_blank')} />
         </div>
       );
     }
-    if (isVideo) {
+    if (isAudio && msg.payload?.url) {
       return (
         <div>
-          <video src={msg.file_url} controls style={{maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', marginTop: '4px'}} />
+          <audio src={msg.payload.url} controls style={{maxWidth: '220px', marginTop: '4px'}} />
         </div>
       );
     }
-    if (isAudio) {
+    if (isFile && msg.payload?.url) {
       return (
-        <div>
-          <audio src={msg.file_url} controls style={{maxWidth: '220px', marginTop: '4px'}} />
-        </div>
+        <a href={msg.payload.url} target="_blank" rel="noopener noreferrer" style={{color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px'}}>
+           <span style={{fontSize: '1.5rem'}}>📄</span>
+           <span style={{fontSize: '0.8rem', wordBreak: 'break-all'}}>{msg.payload.name || 'Documento'}</span>
+        </a>
       );
     }
-    // Generic Document
-    return (
-      <a href={msg.file_url} target="_blank" rel="noopener noreferrer" style={{color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px'}}>
-         <span style={{fontSize: '1.5rem'}}>📄</span>
-         <span style={{fontSize: '0.8rem', wordBreak: 'break-all'}}>{msg.file_name || 'Documento'}</span>
-      </a>
-    );
+
+    return msg.content;
   };
 
   const handleEventClick = async (info: any) => {

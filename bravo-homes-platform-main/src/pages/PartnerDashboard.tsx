@@ -52,6 +52,7 @@ export default function PartnerDashboard() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newStageName, setNewStageName] = useState('');
   const [projectFiles, setProjectFiles] = useState<ProjectDocument[]>([]);
+  const [logPhotos, setLogPhotos] = useState<ProjectDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProjectId, setUploadProjectId] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -240,17 +241,27 @@ export default function PartnerDashboard() {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://tyeaqluofishcvhvpwrg.supabase.co';
 
   const loadProjectFiles = async (projectId?: string) => {
-    const pid = projectId || uploadProjectId;
+    const pid = projectId || (activeTab === 'uploads' ? uploadProjectId : (activeTab === 'stages' ? selectedProject?.id : null));
     if (!pid) return;
     const { data, error } = await supabase.from('project_documents').select('*').eq('project_id', pid).order('created_at', { ascending: false });
     if (!error && data) setProjectFiles(data);
   };
 
-  useEffect(() => { if (uploadProjectId) loadProjectFiles(uploadProjectId); }, [uploadProjectId]);
+  const loadLogPhotos = async () => {
+    const { data, error } = await supabase.from('project_documents').select('*').not('log_id', 'is', null).order('created_at', { ascending: false });
+    if (!error && data) setLogPhotos(data);
+  };
 
-  const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !uploadProjectId) {
-      if (!uploadProjectId) showToast('Atenção', 'Selecione um projeto antes de enviar arquivos.', 'error');
+  useEffect(() => {
+    const pid = activeTab === 'uploads' ? uploadProjectId : (activeTab === 'stages' ? selectedProject?.id : null);
+    if (pid) loadProjectFiles(pid);
+    if (activeTab === 'dailylog') loadLogPhotos();
+  }, [uploadProjectId, selectedProject, activeTab]);
+
+  const handleFileUpload = async (files: FileList | null, targetStageId: string | null = null, targetLogId: string | null = null, targetProjectId: string | null = null) => {
+    const activePid = targetProjectId || (targetStageId ? selectedProject?.id : uploadProjectId);
+    if (!files || files.length === 0 || !activePid) {
+      if (!activePid) showToast('Atenção', 'Selecione um projeto antes de enviar arquivos.', 'error');
       return;
     }
     setIsUploading(true);
@@ -263,7 +274,9 @@ export default function PartnerDashboard() {
       if (uploadErr) { showToast('Erro', `Falha ao enviar ${file.name}: ${uploadErr.message}`, 'error'); continue; }
       const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
       const { error: dbErr } = await supabase.from('project_documents').insert([{
-        project_id: uploadProjectId,
+        project_id: activePid,
+        stage_id: targetStageId,
+        log_id: targetLogId,
         file_url: publicUrl,
         file_name: file.name,
         file_type: file.type
@@ -271,7 +284,10 @@ export default function PartnerDashboard() {
       if (!dbErr) successCount++;
     }
     if (successCount > 0) showToast('Sucesso', `${successCount} arquivo(s) enviado(s)!`, 'success');
-    await loadProjectFiles();
+    
+    if (targetLogId) await loadLogPhotos();
+    else await loadProjectFiles();
+    
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -727,6 +743,10 @@ export default function PartnerDashboard() {
               showToast={showToast}
               setUploadProjectId={setUploadProjectId}
               setActiveTab={setActiveTab}
+              projectFiles={projectFiles}
+              handleFileUpload={handleFileUpload}
+              deleteFile={deleteFile}
+              isUploading={isUploading}
             />
           )}
 
@@ -746,6 +766,10 @@ export default function PartnerDashboard() {
               isSavingLog={isSavingLog}
               getProjectName={getProjectName}
               deleteLog={deleteLog}
+              logPhotos={logPhotos}
+              handleFileUpload={handleFileUpload}
+              deleteFile={deleteFile}
+              isUploading={isUploading}
             />
           )}
 
@@ -831,6 +855,7 @@ export default function PartnerDashboard() {
           {activeTab === 'uploads' && (
             <PartnerUploadsTab
               projects={projects}
+              projectStages={stages}
               uploadProjectId={uploadProjectId}
               setUploadProjectId={setUploadProjectId}
               projectFiles={projectFiles}
