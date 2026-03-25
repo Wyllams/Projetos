@@ -10,7 +10,6 @@ import ChatPanel from '../components/admin/ChatPanel';
 import CalendarTab from '../components/admin/CalendarTab';
 import PartnersTab from '../components/admin/PartnersTab';
 import ClientsTab from '../components/admin/ClientsTab';
-import SocialMediaTab from '../components/admin/SocialMediaTab';
 import AdminOverviewTab from '../components/admin/AdminOverviewTab';
 import AdminPipelineTab from '../components/admin/AdminPipelineTab';
 import AdminAllLeadsTab from '../components/admin/AdminAllLeadsTab';
@@ -127,196 +126,8 @@ export default function AdminDashboard() {
     setConfirmModal({ show: true, msg, onConfirm });
   };
 
-  // Social Media State
-  const [socialAccounts, setSocialAccounts] = useState<any[]>([]);
-  const [socialPosts, setSocialPosts] = useState<any[]>([]);
-  const [socialPostForm, setSocialPostForm] = useState({ content: '', image_url: '', facebook: true, instagram: false });
-  const [socialPosting, setSocialPosting] = useState(false);
-
-  const META_APP_ID = import.meta.env.VITE_META_APP_ID || '914191061529946';
-
-  // Load social data
-  const loadSocialData = async () => {
-    const [accts, posts] = await Promise.all([
-      supabase.from('social_accounts').select('*').order('created_at', { ascending: false }),
-      supabase.from('social_posts').select('*').order('created_at', { ascending: false })
-    ]);
-    if (accts.data) setSocialAccounts(accts.data);
-    if (posts.data) setSocialPosts(posts.data);
-  };
-
-  // Facebook OAuth Connect
-  const handleFbConnect = () => {
-    const redirectUri = window.location.origin + '/admin';
-    const scope = 'pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,public_profile';
-    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=token`;
-    
-    const popup = window.open(authUrl, 'fbAuth', 'width=600,height=700,scrollbars=yes');
-    
-    // Listen for the popup to return with the token
-    const interval = setInterval(async () => {
-      try {
-        if (!popup || popup.closed) { clearInterval(interval); return; }
-        const popupUrl = popup.location.href;
-        if (popupUrl.includes('access_token=')) {
-          clearInterval(interval);
-          const hash = popupUrl.split('#')[1];
-          const params = new URLSearchParams(hash);
-          const accessToken = params.get('access_token');
-          popup.close();
-          
-          if (!accessToken) { showToast('Erro: Token não encontrado.'); return; }
-          
-          // Get user's pages
-          const pagesRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`);
-          const pagesData = await pagesRes.json();
-          
-          if (!pagesData.data || pagesData.data.length === 0) {
-            showToast('Nenhuma Facebook Page encontrada na sua conta. Crie uma Page primeiro.');
-            return;
-          }
-          
-          const page = pagesData.data[0]; // First page
-          const pageToken = page.access_token;
-          const pageId = page.id;
-          const pageName = page.name;
-          
-          // Save Facebook account
-          const { error: fbErr } = await supabase.from('social_accounts').upsert({
-            platform: 'facebook',
-            page_id: pageId,
-            page_name: pageName,
-            access_token: pageToken,
-          }, { onConflict: 'platform' });
-          
-          if (fbErr) console.error('FB save error:', fbErr);
-          
-          // Try to get Instagram Business Account
-          const igRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
-          const igData = await igRes.json();
-          
-          if (igData.instagram_business_account) {
-            const igId = igData.instagram_business_account.id;
-            await supabase.from('social_accounts').upsert({
-              platform: 'instagram',
-              page_id: pageId,
-              page_name: pageName,
-              access_token: pageToken,
-              ig_business_id: igId,
-            }, { onConflict: 'platform' });
-            showToast(`✅ Facebook (${pageName}) e Instagram conectados!`);
-          } else {
-            showToast(`✅ Facebook (${pageName}) conectado! Instagram não detectado.`);
-          }
-          
-          await loadSocialData();
-        }
-      } catch { /* cross-origin, still waiting */ }
-    }, 500);
-  };
-
-  // Publish to Facebook/Instagram
-  const handleSocialPublish = async () => {
-    if (!socialPostForm.content.trim()) return;
-    setSocialPosting(true);
-    
-    try {
-      const results: string[] = [];
-      
-      // Publish to Facebook
-      if (socialPostForm.facebook) {
-        const fbAccount = socialAccounts.find(a => a.platform === 'facebook');
-        if (fbAccount) {
-          let fbUrl = `https://graph.facebook.com/v21.0/${fbAccount.page_id}`;
-          const fbBody: Record<string, string> = { access_token: fbAccount.access_token };
-          
-          if (socialPostForm.image_url) {
-            fbUrl += '/photos';
-            fbBody.url = socialPostForm.image_url;
-            fbBody.message = socialPostForm.content;
-          } else {
-            fbUrl += '/feed';
-            fbBody.message = socialPostForm.content;
-          }
-          
-          const fbRes = await fetch(fbUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fbBody) });
-          const fbData = await fbRes.json();
-          
-          if (fbData.id || fbData.post_id) {
-            const postId = fbData.id || fbData.post_id;
-            await supabase.from('social_posts').insert({
-              platform: 'facebook',
-              content: socialPostForm.content,
-              image_url: socialPostForm.image_url || null,
-              post_id: postId,
-              post_url: `https://www.facebook.com/${postId}`,
-              status: 'published',
-              published_at: new Date().toISOString()
-            });
-            results.push('Facebook ✅');
-          } else {
-            results.push(`Facebook ❌ (${fbData.error?.message || 'Erro'})`);
-          }
-        }
-      }
-      
-      // Publish to Instagram
-      if (socialPostForm.instagram) {
-        const igAccount = socialAccounts.find(a => a.platform === 'instagram');
-        if (igAccount && igAccount.ig_business_id) {
-          if (!socialPostForm.image_url) {
-            results.push('Instagram ❌ (imagem obrigatória)');
-          } else {
-            // Step 1: Create media container
-            const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccount.ig_business_id}/media`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image_url: socialPostForm.image_url, caption: socialPostForm.content, access_token: igAccount.access_token })
-            });
-            const containerData = await containerRes.json();
-            
-            if (containerData.id) {
-              // Step 2: Publish the container
-              const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igAccount.ig_business_id}/media_publish`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ creation_id: containerData.id, access_token: igAccount.access_token })
-              });
-              const publishData = await publishRes.json();
-              
-              if (publishData.id) {
-                await supabase.from('social_posts').insert({
-                  platform: 'instagram',
-                  content: socialPostForm.content,
-                  image_url: socialPostForm.image_url,
-                  post_id: publishData.id,
-                  post_url: `https://www.instagram.com/p/${publishData.id}`,
-                  status: 'published',
-                  published_at: new Date().toISOString()
-                });
-                results.push('Instagram ✅');
-              } else {
-                results.push(`Instagram ❌ (${publishData.error?.message || 'Erro ao publicar'})`);
-              }
-            } else {
-              results.push(`Instagram ❌ (${containerData.error?.message || 'Erro ao criar mídia'})`);
-            }
-          }
-        }
-      }
-      
-      showToast(results.join(' | '));
-      setSocialPostForm({ content: '', image_url: '', facebook: true, instagram: false });
-      await loadSocialData();
-    } catch (err: any) {
-      showToast(`Erro: ${err.message}`);
-    } finally {
-      setSocialPosting(false);
-    }
-  };
-
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [newProjectForm, setNewProjectForm] = useState({ name: '', service_type: 'Reforma', contract_value: '', deadline: '', start_date: '', client_id: '' });
+  const [newProjectForm, setNewProjectForm] = useState({ name: '', service_type: '', contract_value: '', deadline: '', start_date: '', client_id: '' });
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projectClientMode, setProjectClientMode] = useState<'existing' | 'new'>('existing');
   const [newClientName, setNewClientName] = useState('');
@@ -590,8 +401,6 @@ export default function AdminDashboard() {
       if (chatRes.data) setAllChatMessages(chatRes.data);
       if (calRes.data) setCalendarEvents(calRes.data);
 
-      // Load social media data
-      await loadSocialData();
       setLoadingDb(false);
       
       // Auto-sync Google Calendar if previously linked
@@ -781,17 +590,37 @@ export default function AdminDashboard() {
 
   const handleDeleteClient = async (clientId: string) => {
     showConfirm("Certeza que deseja excluir este cliente e todos os seus leads?", async () => {
-      // Delete leads first to satisfy foreign key constraint, then delete client
-      await supabase.from('leads').delete().eq('client_id', clientId);
-      const { error } = await supabase.from('clients').delete().eq('id', clientId);
-      
-      if (error) {
-        console.error("Erro ao deletar cliente:", error);
-        showToast("Erro ao excluir cliente: " + error.message);
-      } else {
+      try {
+        // Delete leads first to satisfy foreign key constraint
+        await supabase.from('leads').delete().eq('client_id', clientId);
+        
+        // Delete the client and verify it was actually deleted
+        const { data, error, count } = await supabase.from('clients').delete().eq('id', clientId).select();
+        
+        if (error) {
+          console.error("Erro ao deletar cliente:", error);
+          showToast("Erro ao excluir cliente: " + error.message);
+          return;
+        }
+        
+        if (!data || data.length === 0) {
+          // RLS blocked the delete — try without RLS check or warn user
+          console.warn('Delete retornou 0 linhas. Possível bloqueio de RLS. Tentando via rpc...');
+          // Fallback: try direct rpc call
+          const { error: rpcError } = await supabase.rpc('delete_client_by_id', { client_id: clientId });
+          if (rpcError) {
+            console.error('RPC fallback failed:', rpcError);
+            showToast('⚠️ Não foi possível excluir. Verifique as políticas RLS no Supabase para a tabela "clients".');
+            return;
+          }
+        }
+        
         setClients(prev => prev.filter(c => c.id !== clientId));
         queryClient.invalidateQueries({ queryKey: adminKeys.leads() });
         showToast('Cliente excluído com sucesso!');
+      } catch (err: any) {
+        console.error('Erro inesperado ao deletar cliente:', err);
+        showToast('Erro inesperado: ' + err.message);
       }
     });
   };
@@ -1375,7 +1204,6 @@ export default function AdminDashboard() {
           
           <div className="sb-sec">{t('messaging')}</div>
           <div className={navItemClass('adminchat')} onClick={() => navTo('adminchat')}><span className="ni-icon">💬</span>{t('chat')}</div>
-          <div className={navItemClass('social')} onClick={() => navTo('social')}><span className="ni-icon">📱</span>Social Media</div>
           
           <div className="sb-sec">{t('system')}</div>
           <div className={navItemClass('settings')} onClick={() => navTo('settings')}><span className="ni-icon">⚙</span>{t('settings')}</div>
@@ -1501,19 +1329,6 @@ export default function AdminDashboard() {
               setIsNewLeadOpen={setIsNewLeadOpen}
               showToast={showToast}
               handleDeleteClient={handleDeleteClient}
-            />
-          )}
-
-          {/* SOCIAL MEDIA TAB */}
-          {activeTab === 'social' && (
-            <SocialMediaTab
-              socialAccounts={socialAccounts}
-              socialPosts={socialPosts}
-              socialPostForm={socialPostForm}
-              setSocialPostForm={setSocialPostForm}
-              socialPosting={socialPosting}
-              handleSocialPublish={handleSocialPublish}
-              handleFbConnect={handleFbConnect}
             />
           )}
 
@@ -1939,19 +1754,38 @@ export default function AdminDashboard() {
             <div className="modal-foot">
               <button className="btn" style={{background: 'transparent', border: '1px solid rgba(231,76,60,0.3)', color: 'var(--red)'}} onClick={() => {
                  showConfirm('Excluir este parceiro? Isso removerá permanentemente do sistema.', async () => {
-                    // Remove associated leads, messages, notifications first
-                    await supabase.from('leads').update({ partner_id: null }).eq('partner_id', selectedPartner.id);
-                    await supabase.from('messages').delete().or(`sender_id.eq.${selectedPartner.id},receiver_id.eq.${selectedPartner.id}`);
-                    await supabase.from('notifications').delete().eq('user_id', selectedPartner.id);
-                    const { error } = await supabase.from('profiles').delete().eq('id', selectedPartner.id);
-                    if (error) {
-                      showToast('Erro ao excluir parceiro: ' + error.message);
-                      return;
+                    try {
+                      // Remove associated leads, messages, notifications first
+                      await supabase.from('leads').update({ partner_id: null }).eq('partner_id', selectedPartner.id);
+                      await supabase.from('messages').delete().or(`sender_id.eq.${selectedPartner.id},receiver_id.eq.${selectedPartner.id}`);
+                      await supabase.from('notifications').delete().eq('user_id', selectedPartner.id);
+                      
+                      // Delete profile and verify
+                      const { data, error } = await supabase.from('profiles').delete().eq('id', selectedPartner.id).select();
+                      
+                      if (error) {
+                        showToast('Erro ao excluir parceiro: ' + error.message);
+                        return;
+                      }
+                      
+                      if (!data || data.length === 0) {
+                        console.warn('Delete retornou 0 linhas. Possível bloqueio de RLS.');
+                        const { error: rpcError } = await supabase.rpc('delete_profile_by_id', { profile_id: selectedPartner.id });
+                        if (rpcError) {
+                          console.error('RPC fallback failed:', rpcError);
+                          showToast('⚠️ Não foi possível excluir. Verifique as políticas RLS no Supabase para a tabela "profiles".');
+                          return;
+                        }
+                      }
+                      
+                      setPartners(prev => prev.filter(p => p.id !== selectedPartner.id));
+                      setSelectedPartner(null);
+                      setEditPartner(null);
+                      showToast('Parceiro removido com sucesso!');
+                    } catch (err: any) {
+                      console.error('Erro inesperado:', err);
+                      showToast('Erro inesperado: ' + err.message);
                     }
-                    setPartners(prev => prev.filter(p => p.id !== selectedPartner.id));
-                    setSelectedPartner(null);
-                    setEditPartner(null);
-                    showToast('Parceiro removido com sucesso!');
                  });
               }}>Remover Parceiro</button>
               {editPartner ? (

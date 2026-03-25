@@ -28,7 +28,7 @@ export default function EventModal({ isOpen, onClose, onSubmit, eventForm, setEv
               <div>
                 <label className="f-label">Lead Associado (Opcional)</label>
                 <Select value={eventForm.lead_id} onChange={e => setEventForm({...eventForm, lead_id: e.target.value})}>
-                  <option value="">— Nenhum Lead —</option>
+                  <option value="">-- Selecione --</option>
                   {leads.map(l => <option key={l.id} value={l.id}>{l.clients?.name || l.name} — {l.service_type}</option>)}
                 </Select>
               </div>

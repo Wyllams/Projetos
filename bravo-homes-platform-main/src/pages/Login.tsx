@@ -197,7 +197,7 @@ export default function Login() {
                 <div className="form-group">
                   <label>{t('profileLabel')}</label>
                   <select className="form-control" required style={{ cursor: 'pointer' }}>
-                    <option value="">{t('selectProfile')}</option>
+                    <option value="" disabled>-- Selecione --</option>
                     <option value="parceiro">{t('partnerContractor')}</option>
                     <option value="cliente">{t('client')}</option>
                   </select>

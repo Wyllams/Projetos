@@ -151,6 +151,7 @@ export default function SettingsTab({
               <div>
                 <label className="f-label">{t('timezone')}</label>
                 <select className="f-inp">
+                  <option value="" disabled>-- Selecione --</option>
                   <option value="America/New_York">América/New York (EST)</option>
                   <option value="America/Chicago">América/Chicago (CST)</option>
                   <option value="America/Denver">América/Denver (MST)</option>
@@ -161,6 +162,7 @@ export default function SettingsTab({
               <div>
                 <label className="f-label">{t('currency')}</label>
                 <select className="f-inp">
+                  <option value="" disabled>-- Selecione --</option>
                   <option value="USD">USD ($)</option>
                   <option value="BRL">BRL (R$)</option>
                   <option value="EUR">EUR (€)</option>
@@ -171,6 +173,7 @@ export default function SettingsTab({
               <div>
                 <label className="f-label">{t('language')}</label>
                 <select className="f-inp" value={lang} onChange={(e) => setLang(e.target.value)}>
+                  <option value="" disabled>-- Selecione --</option>
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="en-US">English (US)</option>
                   <option value="es">Español</option>

@@ -28,7 +28,7 @@ export default function PartnerDailyLogTab({
           <div style={{marginBottom:12}}>
             <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Projeto *</label>
             <select className="f-inp" value={logForm.project_id} onChange={e => setLogForm({...logForm, project_id: e.target.value})}>
-              <option value="">-- Selecione o projeto --</option>
+              <option value="" disabled>-- Selecione --</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
             </select>
           </div>

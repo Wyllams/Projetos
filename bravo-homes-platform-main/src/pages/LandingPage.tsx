@@ -368,7 +368,7 @@ export default function LandingPage() {
                         <div className="form-group">
                           <label>Bathroom Size <span className="req">*</span></label>
                           <select name="bathroom_size" required>
-                            <option value="">Select size...</option>
+                            <option value="" disabled>-- Selecione --</option>
                             <option value="small">Small (&lt;50 sqft)</option>
                             <option value="medium">Medium (50–80 sqft)</option>
                             <option value="large">Large (80+ sqft)</option>
@@ -377,7 +377,7 @@ export default function LandingPage() {
                         <div className="form-group">
                           <label>Service Type <span className="req">*</span></label>
                           <select name="service_type" required>
-                            <option value="">Select service...</option>
+                            <option value="" disabled>-- Selecione --</option>
                             <option value="full_remodel">Full Remodel</option>
                             <option value="tile_flooring">Tile &amp; Flooring</option>
                             <option value="shower_tub">Shower/Tub Replacement</option>
@@ -389,7 +389,7 @@ export default function LandingPage() {
                       <div className="form-group">
                         <label>When are you looking to start? <span className="req">*</span></label>
                         <select name="timeline" required>
-                          <option value="">Select timeline...</option>
+                          <option value="" disabled>-- Selecione --</option>
                           <option value="asap">ASAP — I'm ready now</option>
                           <option value="1_3mo">1–3 months</option>
                           <option value="3_6mo">3–6 months</option>

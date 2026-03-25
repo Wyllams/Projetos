@@ -40,8 +40,9 @@ export default function NewProjectModal({
               <div>
                 <label className="f-label">Tipo de Serviço</label>
                 <Select value={form.service_type} onChange={e => setForm({...form, service_type: e.target.value})}>
-                  <option>Reforma</option>
-                  <option>Reforma Residencial</option>
+                  <option value="" disabled>-- Selecione --</option>
+                  <option value="Reforma">Reforma</option>
+                  <option value="Reforma Residencial">Reforma Residencial</option>
                   <option>Kitchen Remodel</option>
                   <option>Bathroom Remodel</option>
                   <option>Full Renovation</option>
@@ -68,7 +69,7 @@ export default function NewProjectModal({
                 </div>
                 {projectClientMode === 'existing' ? (
                   <Select value={form.client_id} onChange={e => setForm({...form, client_id: e.target.value})}>
-                    <option value="">— Nenhum —</option>
+                    <option value="" disabled>-- Selecione --</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </Select>
                 ) : (

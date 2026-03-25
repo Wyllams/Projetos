@@ -38,7 +38,7 @@ export default function PartnerStagesTab({
               setSelectedProject(proj || null);
             }}
           >
-            <option value="">-- Escolha um projeto --</option>
+            <option value="" disabled>-- Selecione --</option>
             {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
           </select>
         </div>
