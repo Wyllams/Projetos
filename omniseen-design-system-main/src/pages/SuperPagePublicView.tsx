@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Clock, ChevronRight, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import SuperPageMarkdownRenderer from "@/components/SuperPageMarkdownRenderer";
 import type { Tables } from "@/integrations/supabase/types";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -43,7 +44,6 @@ export default function SuperPagePublicView() {
       .from("super_pages")
       .select("*")
       .eq("slug", slug)
-      .eq("status", "published")
       .maybeSingle()
       .then(({ data }) => {
         setPage(data);
@@ -223,10 +223,8 @@ export default function SuperPagePublicView() {
             )}
 
             {/* Markdown Content */}
-            <div ref={contentRef} className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground/90 prose-a:text-primary prose-strong:text-foreground prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r prose-table:border prose-th:bg-muted prose-th:p-3 prose-td:p-3">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
-                {page.content_markdown || ""}
-              </ReactMarkdown>
+            <div ref={contentRef}>
+              <SuperPageMarkdownRenderer markdown={page.content_markdown || ""} isPreview={false} />
             </div>
 
             {/* FAQ Section */}

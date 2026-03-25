@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, MoreVertical, FileText, Loader2, RotateCcw } from "lucide-react";
+import { Plus, Search, MoreVertical, FileText, Loader2, RotateCcw, Folder, FolderPlus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +14,7 @@ import { useBlog } from "@/hooks/useBlog";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { sanitizeImageUrl } from "@/lib/sanitize";
+import { useFolders, moveArticleToFolder, type ArticleFolder } from "@/hooks/useFolders";
 
 const tabs = [
   { key: "all", label: "Todos" },
@@ -36,6 +37,14 @@ export default function ArticlesList() {
   const [articles, setArticles] = useState<Tables<"articles">[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [movingArticle, setMovingArticle] = useState<string | null>(null);
+
+  const { folders, createFolder, renameFolder, deleteFolder } = useFolders(blog?.id);
 
   useEffect(() => {
     if (blogLoading) return;
@@ -54,6 +63,12 @@ export default function ArticlesList() {
       if (searchQuery) {
         query = query.ilike("title", `%${searchQuery}%`);
       }
+      if (selectedFolder) {
+        query = (query as any).eq("folder_id", selectedFolder);
+      } else if (selectedFolder === "") {
+        // "Sem pasta" filter
+        query = (query as any).is("folder_id", null);
+      }
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       query = query.range(from, from + ITEMS_PER_PAGE - 1);
@@ -68,7 +83,7 @@ export default function ArticlesList() {
       setLoading(false);
     };
     fetchArticles();
-  }, [blog, blogLoading, currentTab, searchQuery, page]);
+  }, [blog, blogLoading, currentTab, searchQuery, page, selectedFolder]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -122,7 +137,93 @@ export default function ArticlesList() {
   };
 
   return (
-    <div className="p-space-6 max-w-content-list mx-auto">
+    <div className="flex h-screen">
+      {/* ── Left Folder Sidebar ─────────────────────────────────────────── */}
+      <div className="w-56 shrink-0 border-r border-border flex flex-col bg-card overflow-auto">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-body-sm font-semibold text-foreground">Pastas</h2>
+        </div>
+
+        {/* All folder */}
+        <button
+          onClick={() => setSelectedFolder(null)}
+          className={`flex items-center gap-2 px-4 py-2 text-body-sm w-full text-left transition-colors ${
+            selectedFolder === null ? "text-primary font-medium bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+          }`}
+        >
+          <FileText className="h-4 w-4 shrink-0" /> Todos os Artigos
+        </button>
+
+        {folders.map((folder) => (
+          <div key={folder.id} className="group relative">
+            {renamingFolder === folder.id ? (
+              <div className="flex items-center gap-1 px-3 py-1">
+                <input
+                  value={renamingValue}
+                  onChange={(e) => setRenamingValue(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") { await renameFolder(folder.id, renamingValue); setRenamingFolder(null); }
+                    if (e.key === "Escape") setRenamingFolder(null);
+                  }}
+                  autoFocus
+                  className="flex-1 text-body-sm bg-transparent border-b border-primary outline-none py-0.5"
+                />
+                <button onClick={() => setRenamingFolder(null)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setSelectedFolder(folder.id === selectedFolder ? null : folder.id)}
+                className={`flex items-center gap-2 px-4 py-2 text-body-sm w-full text-left transition-colors ${
+                  selectedFolder === folder.id ? "text-primary font-medium bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                <span style={{ color: folder.color }} className="shrink-0">📁</span>
+                <span className="flex-1 truncate">{folder.name}</span>
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); setRenamingFolder(folder.id); setRenamingValue(folder.name); }}
+                    className="p-0.5 hover:text-foreground">
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                    className="p-0.5 hover:text-destructive">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </button>
+            )}
+          </div>
+        ))}
+
+        {/* Create new folder */}
+        {creatingFolder ? (
+          <div className="flex items-center gap-1 px-3 py-2">
+            <input
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") { await createFolder(newFolderName); setNewFolderName(""); setCreatingFolder(false); }
+                if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
+              }}
+              autoFocus
+              placeholder="Nome da pasta..."
+              className="flex-1 text-body-sm bg-transparent border-b border-primary outline-none py-0.5 placeholder:text-muted-foreground"
+            />
+            <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }}>
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setCreatingFolder(true)}
+            className="flex items-center gap-2 px-4 py-2 text-caption text-muted-foreground hover:text-foreground w-full text-left mt-1"
+          >
+            <FolderPlus className="h-4 w-4" /> Nova pasta
+          </button>
+        )}
+      </div>
+
+      {/* ── Main content ────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-auto p-space-6">
       <div className="h-16 flex items-center justify-between mb-space-5">
         <h1 className="text-h1 text-foreground">Artigos</h1>
         <Button onClick={() => navigate("/client/articles/new")} className="gap-space-2">
@@ -249,6 +350,7 @@ export default function ArticlesList() {
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/client/articles/${article.id}`); }}>
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setMovingArticle(article.id); }}>Mover para pasta</DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={(e) => { e.stopPropagation(); handleDelete(article.id); }}
@@ -280,6 +382,34 @@ export default function ArticlesList() {
           <span className="text-body-sm text-muted-foreground ml-space-4">Página {page} de {totalPages}</span>
         </div>
       )}
+
+      {/* Move to folder picker */}
+      {movingArticle && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setMovingArticle(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl w-72 p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-body font-semibold text-foreground mb-4">Mover para pasta</h3>
+            <div className="space-y-1">
+              <button
+                onClick={async () => { await moveArticleToFolder(movingArticle, null); setMovingArticle(null); }}
+                className="w-full text-left px-3 py-2 text-body-sm rounded hover:bg-accent text-muted-foreground"
+              >
+                📂 Sem pasta
+              </button>
+              {folders.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={async () => { await moveArticleToFolder(movingArticle, f.id); setMovingArticle(null); }}
+                  className="w-full text-left px-3 py-2 text-body-sm rounded hover:bg-accent text-foreground"
+                >
+                  📁 {f.name}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setMovingArticle(null)} className="mt-4 w-full text-caption text-muted-foreground hover:text-foreground">Cancelar</button>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 }

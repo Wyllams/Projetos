@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FileText, Radar, Zap, Globe, Plug, Users, Settings, BarChart3, ChevronLeft, LogOut, Layout, ShieldCheck, Paintbrush, Layers, Image,
+  LayoutDashboard, FileText, Radar, Zap, Globe, Plug, Users, Settings, BarChart3, ChevronLeft, LogOut, Layout, ShieldCheck, Paintbrush, Layers, Image, TrendingUp,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -14,8 +14,9 @@ const navItems = [
   { title: "Artigos", url: "/client/articles", icon: FileText },
   { title: "Geração em Massa", url: "/client/articles/bulk", icon: Layers },
   { title: "Media Hub", url: "/client/media", icon: Image },
-  { title: "Super Pages", url: "/client/landing-pages", icon: Zap },
+  { title: "Super Pages", url: "/client/super-pages", icon: Layout },
   { title: "Radar", url: "/client/radar", icon: Radar },
+  { title: "Analytics", url: "/client/analytics", icon: TrendingUp },
   { title: "Automação", url: "/client/automation", icon: Zap },
   { title: "Domínios", url: "/client/domains", icon: Globe },
   { title: "Integrações", url: "/client/integrations", icon: Plug },

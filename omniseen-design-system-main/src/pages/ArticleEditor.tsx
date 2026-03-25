@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Eye, Save, ChevronDown, Loader2, Bold, Italic, Heading2, Heading3, List, ListOrdered, Quote, Link as LinkIcon, Image as ImageIcon, Sparkles, RefreshCw, Upload, Wand2, Globe, Youtube, Send } from "lucide-react";
+import { ArrowLeft, Eye, Save, ChevronDown, Loader2, Globe, Send, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,11 @@ import ContentScoreVsSerp from "@/components/editor/ContentScoreVsSerp";
 import WordPressExportDialog from "@/components/editor/WordPressExportDialog";
 import YouTubeEmbedDialog from "@/components/editor/YouTubeEmbedDialog";
 import SyndicationDialog from "@/components/editor/SyndicationDialog";
+import { VersionHistoryPanel } from "@/components/editor/VersionHistoryPanel";
+import ExportPDFButton from "@/components/editor/ExportPDFButton";
+import ArticleContentTab from "@/components/editor/ArticleContentTab";
+import ArticleSEOTab from "@/components/editor/ArticleSEOTab";
+import ArticleSettingsTab from "@/components/editor/ArticleSettingsTab";
 import { useInternalLinks } from "@/hooks/useInternalLinks";
 import { useExternalLinks } from "@/hooks/useExternalLinks";
 import { cn } from "@/lib/utils";
@@ -52,15 +57,13 @@ export default function ArticleEditor() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [improving, setImproving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [generatingCover, setGeneratingCover] = useState(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showHumanizeDialog, setShowHumanizeDialog] = useState(false);
   const [showWordPressDialog, setShowWordPressDialog] = useState(false);
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false);
   const [showSyndicationDialog, setShowSyndicationDialog] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const { score: seoScore, loading: seoLoading, debouncedCalculate } = useSeoScore();
 
@@ -346,6 +349,12 @@ export default function ArticleEditor() {
           <Button variant="outline" size="sm" onClick={() => setShowWordPressDialog(true)} title="Exportar para WordPress">
             <Globe className="h-4 w-4" />
           </Button>
+          <ExportPDFButton
+            title={title}
+            htmlContent={editor?.getHTML() ?? ""}
+            authorName={author || undefined}
+            publishedAt={article?.published_at ?? null}
+          />
           <Button variant="outline" size="sm" onClick={() => setShowSyndicationDialog(true)} title="Syndication">
             <Send className="h-4 w-4" />
           </Button>
@@ -377,277 +386,118 @@ export default function ArticleEditor() {
           ))}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto">
+        {/* Tab content */}
+        <div className="flex-1 overflow-hidden">
           {activeTab === "content" && (
-            <div className="h-full flex flex-col">
-              {/* TipTap toolbar */}
-              <div className="h-12 bg-card border-b border-border px-space-4 flex items-center gap-1 shrink-0">
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold")} title="Negrito">
-                  <Bold className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic")} title="Itálico">
-                  <Italic className="h-4 w-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-border mx-1" />
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} active={editor?.isActive("heading", { level: 2 })} title="H2">
-                  <Heading2 className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 })} title="H3">
-                  <Heading3 className="h-4 w-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-border mx-1" />
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList")} title="Lista">
-                  <List className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList")} title="Numerada">
-                  <ListOrdered className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive("blockquote")} title="Citação">
-                  <Quote className="h-4 w-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-border mx-1" />
-                <ToolbarBtn
-                  onClick={() => {
-                    const url = prompt("URL do link:");
-                    if (url) editor?.chain().focus().setLink({ href: url }).run();
-                  }}
-                  active={editor?.isActive("link")}
-                  title="Link"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => {
-                    const url = prompt("URL da imagem:");
-                    if (url) editor?.chain().focus().setImage({ src: url }).run();
-                  }}
-                  title="Imagem"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-border mx-1" />
-                <ToolbarBtn
-                  onClick={() => improveContent("improve")}
-                  title="Melhorar com IA"
-                >
-                  {improving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => improveContent("rewrite")}
-                  title="Reescrever com IA"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => setShowHumanizeDialog(true)}
-                  title="Humanizar Texto"
-                >
-                  <Wand2 className="h-4 w-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => setShowYouTubeDialog(true)}
-                  title="Inserir Vídeo do YouTube"
-                >
-                  <Youtube className="h-4 w-4" />
-                </ToolbarBtn>
-              </div>
-
-              <div className="flex-1 overflow-auto">
-                <EditorContent editor={editor} className="min-h-full" />
-              </div>
-
-              {/* Status bar */}
-              <div className="h-10 border-t border-border px-space-6 flex items-center gap-space-4 text-caption text-muted-foreground shrink-0 bg-card">
-                <span>{wordCount} palavras</span>
-                <span>~{readTime} min de leitura</span>
-              </div>
-            </div>
+            <ArticleContentTab
+              editor={editor}
+              improving={improving}
+              wordCount={wordCount}
+              readTime={readTime}
+              onImprove={(mode) => improveContent(mode)}
+              onOpenHumanize={() => setShowHumanizeDialog(true)}
+              onOpenYouTube={() => setShowYouTubeDialog(true)}
+            />
           )}
 
-          {activeTab === "seo" && (
-            <div className="max-w-[800px] mx-auto p-space-6 space-y-space-6">
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">
-                  Título SEO{" "}
-                  <span className={cn("text-caption", metaTitle.length > 60 ? "text-error" : metaTitle.length >= 50 ? "text-success" : "text-muted-foreground")}>
-                    ({metaTitle.length}/60)
-                  </span>
-                </label>
-                <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} maxLength={70} placeholder="Título SEO otimizado" />
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">
-                  Meta Description{" "}
-                  <span className={cn("text-caption", metaDesc.length > 160 ? "text-error" : metaDesc.length >= 150 ? "text-success" : "text-muted-foreground")}>
-                    ({metaDesc.length}/160)
-                  </span>
-                </label>
-                <Textarea value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} maxLength={170} rows={3} placeholder="Descrição para o Google (150-160 caracteres)" />
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">URL Slug</label>
-                <div className="flex items-center gap-space-2">
-                  <span className="text-body-sm text-muted-foreground font-mono whitespace-nowrap">/blog/</span>
-                  <Input value={slug} onChange={(e) => setSlug(e.target.value)} className="font-mono" />
-                </div>
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">Palavra-chave Foco</label>
-                <Input value={article?.focus_keyword ?? ""} readOnly className="bg-muted cursor-not-allowed" />
-              </div>
-              {/* SERP Preview */}
-              <div className="bg-card border border-border rounded-lg p-space-5">
-                <p className="text-caption text-muted-foreground mb-space-3 uppercase tracking-widest font-medium">Pré-visualização Google</p>
-                <p className="text-[18px] text-blue-400 leading-snug line-clamp-1">
-                  {metaTitle || article?.title || "Título da página"}
-                </p>
-                <p className="text-caption text-green-600 font-mono mt-0.5">
-                  https://{(article as any)?.blogs?.platform_subdomain || "app"}.omniseen.app/blog/{slug || article?.slug}
-                </p>
-                <p className="text-body-sm text-muted-foreground mt-1 line-clamp-2">
-                  {metaDesc || "Meta description aparecerá aqui após você preencher o campo acima..."}
-                </p>
-              </div>
-            </div>
+          {activeTab === "seo" && article && (
+            <ArticleSEOTab
+              metaTitle={metaTitle}
+              metaDesc={metaDesc}
+              slug={slug}
+              focusKeyword={article.focus_keyword ?? ""}
+              blogSubdomain={(article as any)?.blogs?.platform_subdomain ?? ""}
+              onMetaTitleChange={setMetaTitle}
+              onMetaDescChange={setMetaDesc}
+              onSlugChange={setSlug}
+            />
           )}
 
-          {activeTab === "settings" && (
-            <div className="max-w-[800px] mx-auto p-space-6 space-y-space-6">
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">Categoria</label>
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: SEO, Marketing Digital" />
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">Tags</label>
-                <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Separadas por vírgula: seo, marketing, google" />
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">Autor</label>
-                <Input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Nome do autor" />
-              </div>
-              <div>
-                <label className="text-body-sm font-medium text-foreground mb-space-2 block">Imagem Destacada</label>
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file || !article) return;
-                    setUploadingImage(true);
-                    try {
-                      const ext = file.name.split(".").pop() || "jpg";
-                      const fileName = `covers/cover-${article.id}-${Date.now()}.${ext}`;
-                      const { error: upErr } = await supabase.storage.from("article-images").upload(fileName, file, { contentType: file.type, upsert: false });
-                      if (upErr) throw upErr;
-                      const { data: urlData } = supabase.storage.from("article-images").getPublicUrl(fileName);
-                      await supabase.from("articles").update({ featured_image_url: urlData.publicUrl }).eq("id", article.id);
-                      setArticle({ ...article, featured_image_url: urlData.publicUrl });
-                      toast.success("Imagem enviada!");
-                    } catch (err: any) {
-                      toast.error("Erro ao enviar imagem: " + (err.message || ""));
-                    } finally {
-                      setUploadingImage(false);
-                    }
-                  }}
-                />
-                <div
-                  onClick={() => imageInputRef.current?.click()}
-                  className="h-[200px] bg-muted border-2 border-dashed border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/40 transition-colors relative"
-                >
-                  {uploadingImage && (
-                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  )}
-                  {sanitizeImageUrl(article?.featured_image_url) ? (
-                    <img
-                      src={sanitizeImageUrl(article!.featured_image_url)!}
-                      alt="Imagem destacada"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <Upload className="h-6 w-6" />
-                      <span className="text-body-sm">Clique para enviar imagem</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={generatingCover || !article}
-                    onClick={async () => {
-                      if (!article) return;
-                      setGeneratingCover(true);
-                      try {
-                        const { data, error } = await supabase.functions.invoke("generate-cover-image", {
-                          body: { article_id: article.id },
-                        });
-                        if (error) throw error;
-                        if (data?.image_url) {
-                          setArticle({ ...article, featured_image_url: data.image_url });
-                          toast.success("Imagem gerada com IA!");
-                        }
-                      } catch (err: any) {
-                        toast.error("Erro ao gerar imagem: " + (err.message || ""));
-                      } finally {
-                        setGeneratingCover(false);
-                      }
-                    }}
-                    className="text-xs"
-                  >
-                    {generatingCover ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                    Gerar com IA
-                  </Button>
-                </div>
-              </div>
-            </div>
+          {activeTab === "settings" && article && (
+            <ArticleSettingsTab
+              article={article}
+              category={category}
+              tags={tags}
+              author={author}
+              onCategoryChange={setCategory}
+              onTagsChange={setTags}
+              onAuthorChange={setAuthor}
+              onArticleUpdate={(updates) => setArticle((prev) => prev ? { ...prev, ...updates } : prev)}
+            />
           )}
         </div>
       </div>
 
       {/* SEO Score Panel + Internal Links */}
-      <div className="hidden lg:block w-[380px] border-l border-border shrink-0 overflow-auto">
-        <SeoScorePanel score={seoScore} loading={seoLoading} />
-        <div className="border-t border-border">
-          <InternalLinkSuggestions
-            suggestions={linkSuggestions}
-            loading={linksLoading}
-            onInsertLink={(url, text) => {
-              if (editor) {
-                editor.chain().focus().insertContent(
-                  `<a href="${url}">${text}</a> `
-                ).run();
-              }
+      <div className="hidden lg:flex flex-col w-[380px] border-l border-border shrink-0">
+        {/* Sidebar header with toggle */}
+        <div className="h-10 px-4 flex items-center justify-between border-b border-border bg-card shrink-0">
+          <span className="text-caption font-semibold text-muted-foreground uppercase tracking-wide">
+            {showHistory ? "Histórico" : "SEO & Links"}
+          </span>
+          <button
+            onClick={() => setShowHistory(p => !p)}
+            title={showHistory ? "Ver painel SEO" : "Ver histórico de versões"}
+            className={cn(
+              "h-7 w-7 flex items-center justify-center rounded transition-colors",
+              showHistory ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+          >
+            <History className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* History panel */}
+        {showHistory && id && article && editor ? (
+          <VersionHistoryPanel
+            articleId={id}
+            currentContent={editor.getHTML()}
+            currentTitle={title}
+            onRestore={(content, restoredTitle) => {
+              editor.commands.setContent(content);
+              if (restoredTitle) setTitle(restoredTitle);
             }}
           />
-        </div>
-        <div className="border-t border-border">
-          <ExternalLinkSuggestions
-            suggestions={externalSuggestions}
-            loading={externalLoading}
-            onInsertLink={(url, text) => {
-              if (editor) {
-                editor.chain().focus().insertContent(
-                  `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a> `
-                ).run();
-              }
-            }}
-          />
-        </div>
-        {article && id && (
-          <div className="border-t border-border">
-            <ContentScoreVsSerp
-              articleId={id}
-              blogId={article.blog_id}
-              focusKeyword={article.focus_keyword}
-              currentScore={seoScore?.overall_score ?? 0}
-              wordCount={editor?.storage.characterCount?.words() ?? 0}
-            />
+        ) : (
+          <div className="flex-1 overflow-auto">
+            <SeoScorePanel score={seoScore} loading={seoLoading} />
+            <div className="border-t border-border">
+              <InternalLinkSuggestions
+                suggestions={linkSuggestions}
+                loading={linksLoading}
+                onInsertLink={(url, text) => {
+                  if (editor) {
+                    editor.chain().focus().insertContent(
+                      `<a href="${url}">${text}</a> `
+                    ).run();
+                  }
+                }}
+              />
+            </div>
+            <div className="border-t border-border">
+              <ExternalLinkSuggestions
+                suggestions={externalSuggestions}
+                loading={externalLoading}
+                onInsertLink={(url, text) => {
+                  if (editor) {
+                    editor.chain().focus().insertContent(
+                      `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a> `
+                    ).run();
+                  }
+                }}
+              />
+            </div>
+            {article && id && (
+              <div className="border-t border-border">
+                <ContentScoreVsSerp
+                  articleId={id}
+                  blogId={article.blog_id}
+                  focusKeyword={article.focus_keyword}
+                  currentScore={seoScore?.overall_score ?? 0}
+                  wordCount={editor?.storage.characterCount?.words() ?? 0}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

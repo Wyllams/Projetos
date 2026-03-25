@@ -42,6 +42,7 @@ export interface TriggerParams {
   includeFaq?: boolean;
   includeImages?: boolean;
   customOutline?: string[];
+  webResearch?: boolean;
 }
 
 // Mapeamento status DB → índice de step para a barra de progresso visual
@@ -184,6 +185,7 @@ export function useArticlePipeline(onComplete?: (articleId: string) => void) {
             tone: params.tone ?? "profissional e próximo",
             include_faq: params.includeFaq ?? true,
             include_images: params.includeImages ?? true,
+            web_research: params.webResearch ?? false,
             ...(params.customOutline && { custom_outline: params.customOutline }),
           },
         });

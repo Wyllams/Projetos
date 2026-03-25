@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Palette } from "lucide-react";
+import { Loader2, Save, Palette, KeyRound, Cpu, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 type BrandSettings = {
@@ -39,6 +39,16 @@ export default function BrandSettingsPage() {
     brand_colors: { primary: "#7c3aed", secondary: "#06b6d4" },
   });
 
+  // AI Keys (BYOK)
+  const [openaiKey, setOpenaiKey]     = useState("");
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [showOpenai, setShowOpenai]   = useState(false);
+  const [showAnthropic, setShowAnthropic] = useState(false);
+  const [savingKeys, setSavingKeys]   = useState(false);
+
+  // Model preference
+  const [aiModel, setAiModel] = useState("quality");
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -56,6 +66,19 @@ export default function BrandSettingsPage() {
           target_audience: data.target_audience ?? "",
           brand_colors: (data.brand_colors as any) ?? { primary: "#7c3aed", secondary: "#06b6d4" },
         });
+      }
+
+      // Load AI keys from profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("openai_api_key, anthropic_api_key, preferred_ai_model")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setOpenaiKey((profile as any).openai_api_key ?? "");
+        setAnthropicKey((profile as any).anthropic_api_key ?? "");
+        setAiModel((profile as any).preferred_ai_model ?? "quality");
       }
       setLoading(false);
     };
@@ -87,6 +110,26 @@ export default function BrandSettingsPage() {
       toast.error(e.message || "Erro ao salvar configurações");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveKeys = async () => {
+    if (!user) return;
+    setSavingKeys(true);
+    try {
+      await supabase
+        .from("profiles")
+        .update({
+          openai_api_key: openaiKey || null,
+          anthropic_api_key: anthropicKey || null,
+          preferred_ai_model: aiModel,
+        } as any)
+        .eq("user_id", user.id);
+      toast.success("Chaves de IA salvas!");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar chaves");
+    } finally {
+      setSavingKeys(false);
     }
   };
 
@@ -180,7 +223,113 @@ export default function BrandSettingsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      {/* ── AI Keys (BYOK) ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            Chaves de IA (BYOK)
+          </CardTitle>
+          <CardDescription>
+            Use suas próprias chaves de API para reduzir custos e ter controle total sobre os modelos. As chaves são armazenadas de forma segura e nunca são expostas no frontend.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* OpenAI Key */}
+          <div className="space-y-2">
+            <Label htmlFor="openai_key" className="flex items-center gap-2">
+              <span className="font-bold text-[#10a37f]">OpenAI</span> API Key
+            </Label>
+            <div className="relative">
+              <Input
+                id="openai_key"
+                type={showOpenai ? "text" : "password"}
+                value={openaiKey}
+                onChange={(e) => setOpenaiKey(e.target.value)}
+                placeholder="sk-proj-..."
+                className="pr-10 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOpenai(p => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showOpenai ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-caption text-muted-foreground">Usado pelos modelos GPT-4o, GPT-4o-mini e DALL-E 3.</p>
+          </div>
+
+          {/* Anthropic Key */}
+          <div className="space-y-2">
+            <Label htmlFor="anthropic_key" className="flex items-center gap-2">
+              <span className="font-bold text-[#d97706]">Anthropic</span> API Key
+            </Label>
+            <div className="relative">
+              <Input
+                id="anthropic_key"
+                type={showAnthropic ? "text" : "password"}
+                value={anthropicKey}
+                onChange={(e) => setAnthropicKey(e.target.value)}
+                placeholder="sk-ant-api03-..."
+                className="pr-10 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAnthropic(p => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showAnthropic ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-caption text-muted-foreground">Usado pelos modelos Claude 3.5 Sonnet e Claude 3 Haiku.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Model Preference ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-primary" />
+            Modelo de IA Padrão
+          </CardTitle>
+          <CardDescription>
+            Escolha o nível padrão de geração. Pode ser alterado individualmente em cada geração.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: "fast",    label: "⚡ Rápido",   desc: "GPT-4o-mini / Haiku",   note: "Menor custo" },
+              { key: "quality", label: "✨ Qualidade", desc: "GPT-4o / Sonnet",        note: "Recomendado" },
+              { key: "premium", label: "🚀 Premium",  desc: "GPT-4o + pesquisa web",  note: "Maior precisão" },
+            ].map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setAiModel(m.key)}
+                className={`rounded-lg border p-3 text-left transition-all ${
+                  aiModel === m.key
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
+                <p className="text-body-sm font-semibold text-foreground">{m.label}</p>
+                <p className="text-caption text-muted-foreground mt-0.5">{m.desc}</p>
+                <span className={`text-tiny font-medium mt-1 inline-block ${
+                  aiModel === m.key ? "text-primary" : "text-muted-foreground"
+                }`}>{m.note}</span>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end gap-3">
+        <Button onClick={handleSaveKeys} disabled={savingKeys} variant="outline" size="lg" className="min-w-[180px]">
+          {savingKeys ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
+          Salvar Chaves de IA
+        </Button>
         <Button onClick={handleSave} disabled={saving} size="lg" className="min-w-[200px]">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
           Salvar Configurações

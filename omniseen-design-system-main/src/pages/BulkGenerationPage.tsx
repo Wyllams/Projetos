@@ -48,7 +48,7 @@ export default function BulkGenerationPage() {
   const { items, stats, isRunning, enqueue, retryFailed, abort, reset } = useBulkPipeline();
 
   const [keywordsText, setKeywordsText] = useState("");
-  const [showOptions, setShowOptions] = useState(false);
+  // Removed showOptions state
   const [language, setLanguage] = useState("pt-br");
   const [size, setSize] = useState<"short" | "medium" | "long">("medium");
   const [tone, setTone] = useState("profissional e próximo");
@@ -175,63 +175,53 @@ export default function BulkGenerationPage() {
               </div>
             </div>
 
-            {/* Options */}
-            <button
-              onClick={() => setShowOptions(!showOptions)}
-              className="flex items-center gap-space-2 text-body-sm text-muted-foreground mb-space-5 hover:text-foreground"
-            >
-              Opções avançadas{" "}
-              {showOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-
-            {showOptions && (
-              <div className="grid grid-cols-2 gap-space-5 mb-space-6">
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Idioma</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pt-br">Português (BR)</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Advanced options (always visible) */}
+            <div className="grid grid-cols-2 gap-space-5 mb-space-6 mt-space-4 pt-space-4 border-t border-border">
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Idioma</label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pt-br">Português (BR)</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Tamanho</label>
+                <Select value={size} onValueChange={(v) => setSize(v as typeof size)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Curto (~1.000 palavras)</SelectItem>
+                    <SelectItem value="medium">Médio (~2.000 palavras)</SelectItem>
+                    <SelectItem value="long">Longo (~3.200 palavras)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Tom de voz</label>
+                <Select value={tone} onValueChange={setTone}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="profissional e próximo">Profissional</SelectItem>
+                    <SelectItem value="casual e descontraído">Casual</SelectItem>
+                    <SelectItem value="técnico e especializado">Técnico</SelectItem>
+                    <SelectItem value="persuasivo e comercial">Persuasivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-space-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Incluir imagens</label>
+                  <Switch checked={includeImages} onCheckedChange={setIncludeImages} />
                 </div>
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Tamanho</label>
-                  <Select value={size} onValueChange={(v) => setSize(v as typeof size)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short">Curto (~1.000 palavras)</SelectItem>
-                      <SelectItem value="medium">Médio (~2.000 palavras)</SelectItem>
-                      <SelectItem value="long">Longo (~3.200 palavras)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Tom de voz</label>
-                  <Select value={tone} onValueChange={setTone}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="profissional e próximo">Profissional</SelectItem>
-                      <SelectItem value="casual e descontraído">Casual</SelectItem>
-                      <SelectItem value="técnico e especializado">Técnico</SelectItem>
-                      <SelectItem value="persuasivo e comercial">Persuasivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-space-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Incluir imagens</label>
-                    <Switch checked={includeImages} onCheckedChange={setIncludeImages} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Incluir FAQ</label>
-                    <Switch checked={includeFaq} onCheckedChange={setIncludeFaq} />
-                  </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Incluir FAQ</label>
+                  <Switch checked={includeFaq} onCheckedChange={setIncludeFaq} />
                 </div>
               </div>
-            )}
+            </div>
 
             <Button
               onClick={startGeneration}

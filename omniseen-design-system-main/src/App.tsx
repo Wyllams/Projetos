@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +30,11 @@ import PublicArticle from "@/pages/PublicArticle";
 import PublicLandingPage from "@/pages/PublicLandingPage";
 import SuperPagePublicView from "@/pages/SuperPagePublicView";
 import AdminDashboard from "@/pages/AdminDashboard";
+import SuperPagesList from "@/pages/SuperPagesList";
+import SuperPageCreator from "@/pages/SuperPageCreator";
+import SuperPageEditor from "@/pages/SuperPageEditor";
+import LandingPageEditor from "@/pages/LandingPageEditor";
+import AnalyticsDashboard from "@/pages/AnalyticsDashboard";
 import NotFound from "@/pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { getSubdomain } from "@/utils/subdomain";
@@ -63,51 +69,58 @@ const BlogRoutes = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/client/dashboard" replace />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/client/*" element={
-              <ProtectedRoute>
-                <ClientLayout>
-                  <Routes>
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="articles" element={<ArticlesList />} />
-                    <Route path="articles/new" element={<ArticleGenerator />} />
-                    <Route path="articles/bulk" element={<BulkGenerationPage />} />
-                    <Route path="articles/:id" element={<ArticleEditor />} />
-                    <Route path="articles/:id/preview" element={<ArticlePreview />} />
-                    <Route path="radar" element={<RadarPage />} />
-                    <Route path="automation" element={<AutomationPage />} />
-                    <Route path="landing-pages" element={<LandingPagesPage />} />
-                    <Route path="domains" element={<DomainsPage />} />
-                    <Route path="integrations" element={<IntegrationsPage />} />
-                    <Route path="leads" element={<LeadsPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="consumption" element={<ConsumptionPage />} />
-                    <Route path="brand" element={<BrandSettingsPage />} />
-                    <Route path="media" element={<MediaHubPage />} />
-                  </Routes>
-                </ClientLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/blog/*" element={<BlogRoutes />} />
-            <Route path="/p/:pageSlug" element={<PublicLandingPage />} />
-            <Route path="/sp/:slug" element={<SuperPagePublicView />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Navigate to="/client/dashboard" replace />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/client/*" element={
+                <ProtectedRoute>
+                  <ClientLayout>
+                    <Routes>
+                      <Route path="dashboard" element={<Dashboard />} />
+                      <Route path="articles" element={<ArticlesList />} />
+                      <Route path="articles/new" element={<ArticleGenerator />} />
+                      <Route path="articles/bulk" element={<BulkGenerationPage />} />
+                      <Route path="articles/:id" element={<ArticleEditor />} />
+                      <Route path="articles/:id/preview" element={<ArticlePreview />} />
+                      <Route path="radar" element={<RadarPage />} />
+                      <Route path="automation" element={<AutomationPage />} />
+                      <Route path="landing-pages" element={<LandingPagesPage />} />
+                      <Route path="landing-pages/:id" element={<LandingPageEditor />} />
+                      <Route path="domains" element={<DomainsPage />} />
+                      <Route path="integrations" element={<IntegrationsPage />} />
+                      <Route path="leads" element={<LeadsPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="consumption" element={<ConsumptionPage />} />
+                      <Route path="brand" element={<BrandSettingsPage />} />
+                      <Route path="media" element={<MediaHubPage />} />
+                      <Route path="analytics" element={<AnalyticsDashboard />} />
+                      <Route path="super-pages" element={<SuperPagesList />} />
+                      <Route path="super-pages/new" element={<SuperPageCreator />} />
+                      <Route path="super-pages/:id" element={<SuperPageEditor />} />
+                    </Routes>
+                  </ClientLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/blog/*" element={<BlogRoutes />} />
+              <Route path="/p/:pageSlug" element={<PublicLandingPage />} />
+              <Route path="/sp/:slug" element={<SuperPagePublicView />} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

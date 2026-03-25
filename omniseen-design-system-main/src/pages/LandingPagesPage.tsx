@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Zap, Plus, ExternalLink, Loader2, Search, Code2, Eye, Trash2, Pencil, Save, X, Filter, Copy, Share2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ const htmlGenPhases = [
 ];
 
 export default function LandingPagesPage() {
+  const navigate = useNavigate();
   const { blog, loading: blogLoading } = useBlog();
   const [activeTab, setActiveTab] = useState("super-pages");
 
@@ -438,7 +440,7 @@ export default function LandingPagesPage() {
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(`/p/${page.slug}`, "_blank")}>
                         <Eye className="h-4 w-4 mr-1" /> Visualizar
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => openEditor(page)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/client/landing-pages/${page.id}`); }}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => window.open(`/p/${page.slug}`, "_blank")}><ExternalLink className="h-4 w-4" /></Button>
                       <Button
                         variant="ghost" size="sm"

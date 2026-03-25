@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, PenTool, ChevronDown, ChevronUp, Loader2, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, PenTool, ChevronDown, ChevronUp, Loader2, Check, AlertCircle, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +20,7 @@ export default function ArticleGenerator() {
   const { blog } = useBlog();
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [keyword, setKeyword] = useState("");
-  const [showOptions, setShowOptions] = useState(false);
+  // Removed showOptions state
 
   const [language, setLanguage] = useState("pt-br");
   const [size, setSize] = useState<"short" | "medium" | "long">("medium");
@@ -34,6 +34,7 @@ export default function ArticleGenerator() {
   const [pov, setPov] = useState("third");
   const [brandVoice, setBrandVoice] = useState("");
   const [includeYouTube, setIncludeYouTube] = useState(false);
+  const [webResearch, setWebResearch] = useState(false);
 
   // ── Pipeline hook: Realtime progress from Supabase ────────────────────────
   const onComplete = useCallback(
@@ -73,6 +74,7 @@ export default function ArticleGenerator() {
       includeFaq,
       includeImages,
       customOutline,
+      webResearch,
     });
   };
 
@@ -143,95 +145,98 @@ export default function ArticleGenerator() {
               )}
             </div>
 
-            <button
-              onClick={() => setShowOptions(!showOptions)}
-              className="flex items-center gap-space-2 text-body-sm text-muted-foreground mb-space-5 hover:text-foreground"
-            >
-              Opções avançadas{" "}
-              {showOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-
-            {showOptions && (
-              <div className="grid grid-cols-2 gap-space-5 mb-space-6">
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Idioma</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pt-br">Português (BR)</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Tamanho</label>
-                  <Select value={size} onValueChange={(v) => setSize(v as typeof size)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short">Curto (~1.000 palavras)</SelectItem>
-                      <SelectItem value="medium">Médio (~2.000 palavras)</SelectItem>
-                      <SelectItem value="long">Longo (~3.200 palavras)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Tom de voz</label>
-                  <Select value={tone} onValueChange={setTone}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="profissional e próximo">Profissional</SelectItem>
-                      <SelectItem value="casual e descontraído">Casual</SelectItem>
-                      <SelectItem value="técnico e especializado">Técnico</SelectItem>
-                      <SelectItem value="persuasivo e comercial">Persuasivo</SelectItem>
-                      <SelectItem value="didático e educacional">Didático</SelectItem>
-                      <SelectItem value="empático e acolhedor">Empático</SelectItem>
-                      <SelectItem value="formal e acadêmico">Acadêmico</SelectItem>
-                      <SelectItem value="humorístico e leve">Humorístico</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Ponto de Vista (POV)</label>
-                  <Select value={pov} onValueChange={setPov}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="first_singular">1ª pessoa singular ("Eu")</SelectItem>
-                      <SelectItem value="first_plural">1ª pessoa plural ("Nós")</SelectItem>
-                      <SelectItem value="second">2ª pessoa ("Você")</SelectItem>
-                      <SelectItem value="third">3ª pessoa (Impessoal)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-space-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Incluir imagens</label>
-                    <Switch checked={includeImages} onCheckedChange={setIncludeImages} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Incluir FAQ</label>
-                    <Switch checked={includeFaq} onCheckedChange={setIncludeFaq} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Outline Editor</label>
-                    <Switch checked={useOutlineEditor} onCheckedChange={setUseOutlineEditor} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-caption text-muted-foreground">Embed YouTube</label>
-                    <Switch checked={includeYouTube} onCheckedChange={setIncludeYouTube} />
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-caption text-muted-foreground mb-space-1 block">Brand Voice (opcional)</label>
-                  <Input
-                    value={brandVoice}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBrandVoice(e.target.value)}
-                    placeholder="Ex: Tom informal da XYZ Corp, sempre usar 'a gente' ao invés de 'nós'"
-                    className="text-body-sm"
-                  />
-                </div>
+            {/* Advanced options (always visible) */}
+            <div className="grid grid-cols-2 gap-space-5 mb-space-6 mt-space-4 pt-space-4 border-t border-border">
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Idioma</label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pt-br">Português (BR)</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Español</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Tamanho</label>
+                <Select value={size} onValueChange={(v) => setSize(v as typeof size)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Curto (~1.000 palavras)</SelectItem>
+                    <SelectItem value="medium">Médio (~2.000 palavras)</SelectItem>
+                    <SelectItem value="long">Longo (~3.200 palavras)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Tom de voz</label>
+                <Select value={tone} onValueChange={setTone}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="profissional e próximo">Profissional</SelectItem>
+                    <SelectItem value="casual e descontraído">Casual</SelectItem>
+                    <SelectItem value="técnico e especializado">Técnico</SelectItem>
+                    <SelectItem value="persuasivo e comercial">Persuasivo</SelectItem>
+                    <SelectItem value="didático e educacional">Didático</SelectItem>
+                    <SelectItem value="empático e acolhedor">Empático</SelectItem>
+                    <SelectItem value="formal e acadêmico">Acadêmico</SelectItem>
+                    <SelectItem value="humorístico e leve">Humorístico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-caption text-muted-foreground mb-space-1 block">Ponto de Vista (POV)</label>
+                <Select value={pov} onValueChange={setPov}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="first_singular">1ª pessoa singular ("Eu")</SelectItem>
+                    <SelectItem value="first_plural">1ª pessoa plural ("Nós")</SelectItem>
+                    <SelectItem value="second">2ª pessoa ("Você")</SelectItem>
+                    <SelectItem value="third">3ª pessoa (Impessoal)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-space-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Incluir imagens</label>
+                  <Switch checked={includeImages} onCheckedChange={setIncludeImages} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Incluir FAQ</label>
+                  <Switch checked={includeFaq} onCheckedChange={setIncludeFaq} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Outline Editor</label>
+                  <Switch checked={useOutlineEditor} onCheckedChange={setUseOutlineEditor} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-caption text-muted-foreground">Embed YouTube</label>
+                  <Switch checked={includeYouTube} onCheckedChange={setIncludeYouTube} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-primary" />
+                    <label className="text-caption text-muted-foreground">Conectar à Web</label>
+                  </div>
+                  <Switch checked={webResearch} onCheckedChange={setWebResearch} />
+                </div>
+                {webResearch && (
+                  <p className="text-caption text-primary bg-primary/5 border border-primary/20 rounded-md px-3 py-2">
+                    🌐 A IA irá pesquisar os resultados atuais do Google antes de escrever, garantindo dados, estatísticas e referências recentes.
+                  </p>
+                )}
+              </div>
+              <div className="col-span-2">
+                <label className="text-caption text-muted-foreground mb-space-1 block">Brand Voice (opcional)</label>
+                <Input
+                  value={brandVoice}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBrandVoice(e.target.value)}
+                  placeholder="Ex: Tom informal da XYZ Corp, sempre usar 'a gente' ao invés de 'nós'"
+                  className="text-body-sm"
+                />
+              </div>
+            </div>
 
             <Button
               onClick={() => startGeneration()}
