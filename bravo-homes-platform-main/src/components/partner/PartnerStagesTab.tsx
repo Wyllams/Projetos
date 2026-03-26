@@ -105,7 +105,7 @@ export default function PartnerStagesTab({
                         <div style={{fontWeight:600,fontSize:'0.88rem',textDecoration: stg.status === 'completed' ? 'line-through' : 'none',color: stg.status === 'completed' ? 'var(--t3)' : 'var(--text)',transition:'all 0.2s'}}>{idx + 1}. {stg.name}</div>
                         <div style={{fontSize:'0.7rem',color:'var(--t3)',marginTop:2}}>{stg.status === 'completed' ? 'Concluída ✓' : stg.status === 'in_progress' ? 'Em andamento' : 'Pendente'}</div>
                       </div>
-                      <span style={{fontSize:'0.75rem', opacity:0.6, transform: expandedSections.has(stg.id) ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.2s', display:'inline-block'}}>▶</span>
+                      <span style={{fontSize:'1.1rem', opacity:0.6, display:'inline-block', width: '16px', textAlign: 'center'}}>{expandedSections.has(stg.id) ? '−' : '+'}</span>
                     </div>
                     <button className="btn ghost" style={{fontSize:'0.7rem',padding:'4px 10px',color:'var(--red)'}} onClick={(e) => { e.stopPropagation(); deleteStage(stg.id); }}>🗑</button>
                   </div>

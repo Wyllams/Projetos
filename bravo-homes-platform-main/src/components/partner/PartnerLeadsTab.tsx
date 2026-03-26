@@ -6,7 +6,6 @@ interface PartnerLeadsTabProps {
   expandedLead: string | null;
   setExpandedLead: (id: string | null) => void;
   getUrgencyColor: (u: string) => string;
-  getStatusColor: (s: string) => string;
   leadStatuses: string[];
   updateLeadStatus: (id: string, status: string) => void;
   leadNotes: Record<string, string>;
@@ -17,7 +16,7 @@ interface PartnerLeadsTabProps {
 
 export default function PartnerLeadsTab({
   leads, loadingDb, expandedLead, setExpandedLead,
-  getUrgencyColor, getStatusColor, leadStatuses, updateLeadStatus,
+  getUrgencyColor, leadStatuses, updateLeadStatus,
   leadNotes, setLeadNotes, saveLeadNotes, deleteLead
 }: PartnerLeadsTabProps) {
 

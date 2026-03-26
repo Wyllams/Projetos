@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Project, Lead, Stage, CalendarEvent, Message, Client, DailyLog, ProjectDocument, EditingEvent, NewEventForm, LogForm, NewProjectForm } from '../types';
+import type { Project, Lead, Stage, CalendarEvent, Message, Client, DailyLog, ProjectDocument } from '../types';
 import type { User } from '@supabase/supabase-js';
 import { useLanguage } from '../lib/i18n';
-import type { Lang } from '../lib/i18n';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
+// removed unused imports
 import PartnerStagesTab from '../components/partner/PartnerStagesTab';
 import PartnerUploadsTab from '../components/partner/PartnerUploadsTab';
 import PartnerProfileTab from '../components/partner/PartnerProfileTab';
@@ -56,9 +52,8 @@ export default function PartnerDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProjectId, setUploadProjectId] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isNewEventOpen, setIsNewEventOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', event_date: '', start_time: '', project_id: '' });
-  const [editingEvent, setEditingEvent] = useState<EditingEvent | null>(null);
+// removed isNewEventOpen
+// removed newEvent and editingEvent
   const [logForm, setLogForm] = useState({ project_id: '', log_text: '', materials: '' });
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [expandedLead, setExpandedLead] = useState<string | null>(null);
@@ -70,7 +65,7 @@ export default function PartnerDashboard() {
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
   const [profileEditing, setProfileEditing] = useState(false);
-  const [profileForm, setProfileForm] = useState<Record<string, string>>({});
+  const [profileForm, setProfileForm] = useState<Record<string, any>>({});
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ newPass: '', confirmPass: '' });
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -142,7 +137,7 @@ export default function PartnerDashboard() {
   };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t, lang, setLang } = useLanguage();
-  const navItemClass = (tab: string) => `ni ${activeTab === tab ? 'active' : ''}`;
+// removed navItemClass
   const navTo = (tab: string) => { setActiveTab(tab); setSidebarOpen(false); };
 
   const handleCreateProject = () => {
@@ -269,7 +264,7 @@ export default function PartnerDashboard() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const ext = file.name.split('.').pop();
-      const path = `${uploadProjectId}/${Date.now()}_${i}.${ext}`;
+      const path = `${activePid}/${Date.now()}_${i}.${ext}`;
       const { error: uploadErr } = await supabase.storage.from('project-files').upload(path, file, { cacheControl: '3600', upsert: false });
       if (uploadErr) { showToast('Erro', `Falha ao enviar ${file.name}: ${uploadErr.message}`, 'error'); continue; }
       const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
@@ -308,79 +303,7 @@ export default function PartnerDashboard() {
     return '📎';
   };
 
-  // === CALENDAR FUNCTIONS ===
-  const addEvent = async () => {
-    if (!newEvent.title || !newEvent.event_date) {
-      showToast('Atenção', 'Preencha o título e a data.', 'error');
-      return;
-    }
-    try {
-      const { data, error } = await supabase.from('calendar_events').insert([{
-        title: newEvent.title,
-        event_date: newEvent.event_date,
-        start_time: newEvent.start_time || null,
-        lead_id: null
-      }]).select().single();
-      if (error) { showToast('Erro', error.message, 'error'); return; }
-      setEvents(prev => [...prev, data]);
-      setNewEvent({ title: '', event_date: '', start_time: '', project_id: '' });
-      setIsNewEventOpen(false);
-      showToast('Sucesso', 'Atividade agendada!', 'success');
-    } catch (err: any) { showToast('Erro', err.message, 'error'); }
-  };
-
-  const deleteEvent = async (eventId: string) => {
-    await supabase.from('calendar_events').delete().eq('id', eventId);
-    setEvents(prev => prev.filter(e => e.id !== eventId));
-    showToast('Removido', 'Evento removido.', 'success');
-  };
-
-  const handleEditEventSave = async () => {
-    if (!editingEvent) return;
-    try {
-      const { error } = await supabase.from('calendar_events').update({
-        event_date: editingEvent.date,
-        start_time: editingEvent.time,
-        title: editingEvent.title,
-      }).eq('id', editingEvent.id);
-      if (error) throw error;
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, event_date: editingEvent.date, start_time: editingEvent.time, title: editingEvent.title } : e));
-      showToast('Atualizado', 'Evento atualizado com sucesso!', 'success');
-      setEditingEvent(null);
-    } catch (err: any) {
-      console.error(err);
-      showToast('Erro', 'Erro ao atualizar evento.', 'error');
-    }
-  };
-
-  const handleEditEventDelete = async () => {
-    if (!editingEvent) return;
-    if (confirm(`Deseja excluir "${editingEvent.title}"?`)) {
-      await deleteEvent(editingEvent.id);
-      setEditingEvent(null);
-    }
-  };
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(today);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-  const todayEvents = events.filter(e => {
-    const d = new Date(e.event_date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() === today.getTime();
-  });
-  const weekEvents = events.filter(e => {
-    const d = new Date(e.event_date);
-    d.setHours(0, 0, 0, 0);
-    return d > today && d <= endOfWeek;
-  });
-  const futureEvents = events.filter(e => {
-    const d = new Date(e.event_date);
-    d.setHours(0, 0, 0, 0);
-    return d > endOfWeek;
-  }).sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+  // Calendar functions moved to PartnerCalendarTab
 
   // === LOG FUNCTIONS ===
   const submitLog = async () => {
@@ -443,12 +366,7 @@ export default function PartnerDashboard() {
     return 'var(--blue)';
   };
 
-  const getStatusColor = (s: string) => {
-    if (s === 'Convertido') return 'var(--green)';
-    if (s === 'Perdido') return 'var(--red)';
-    if (s === 'Proposta Enviada' || s === 'Reunião Agendada') return 'var(--gold)';
-    return 'var(--t3)';
-  };
+// removed getStatusColor
 
   const leadStatuses = ['Novo', 'Em Contato', 'Reunião Agendada', 'Proposta Enviada', 'Convertido', 'Perdido'];
 
@@ -586,11 +504,11 @@ export default function PartnerDashboard() {
   }, [messages, user, adminUser, clients]);
 
   // === PROFILE FUNCTIONS ===
-  const [profileData, setProfileData] = useState<Record<string, string> | null>(null);
+  const [profileData, setProfileData] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from('profiles').select('*').eq('id', user.id).single().then(async ({ data, error }) => {
+    supabase.from('profiles').select('*').eq('id', user.id).single().then(async ({ data }) => {
       if (data) {
         setProfileData(data);
         setProfileForm(data);
@@ -781,7 +699,6 @@ export default function PartnerDashboard() {
               expandedLead={expandedLead}
               setExpandedLead={setExpandedLead}
               getUrgencyColor={getUrgencyColor}
-              getStatusColor={getStatusColor}
               leadStatuses={leadStatuses}
               updateLeadStatus={updateLeadStatus}
               leadNotes={leadNotes}

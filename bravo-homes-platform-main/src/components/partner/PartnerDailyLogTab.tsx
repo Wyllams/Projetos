@@ -37,27 +37,34 @@ export default function PartnerDailyLogTab({
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name} — {p.service_type}</option>)}
             </select>
           </div>
-          <div style={{marginBottom:12}}>
-            <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>O que foi feito hoje? *</label>
-            <textarea className="f-inp" style={{resize:'vertical',minHeight:100}} placeholder="Descreva as atividades realizadas hoje na obra..." value={logForm.log_text} onChange={e => setLogForm({...logForm, log_text: e.target.value})}></textarea>
-          </div>
-          <div className="u-mb-14">
-            <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Materiais utilizados</label>
-            <input className="f-inp" type="text" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})} />
-          </div>
-          <button className="btn gold" onClick={submitLog} disabled={isSavingLog} style={{opacity: isSavingLog ? 0.6 : 1}}>
-            {isSavingLog ? '⏳ Salvando...' : '💾 Salvar log do dia'}
-          </button>
+          {logForm.project_id && (
+            <>
+              <div style={{marginBottom:12}}>
+                <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>O que foi feito hoje? *</label>
+                <textarea className="f-inp" style={{resize:'vertical',minHeight:100}} placeholder="Descreva as atividades realizadas hoje na obra..." value={logForm.log_text} onChange={e => setLogForm({...logForm, log_text: e.target.value})}></textarea>
+              </div>
+              <div className="u-mb-14">
+                <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Materiais utilizados</label>
+                <input className="f-inp" type="text" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})} />
+              </div>
+              <button className="btn gold" onClick={submitLog} disabled={isSavingLog} style={{opacity: isSavingLog ? 0.6 : 1}}>
+                {isSavingLog ? '⏳ Salvando...' : '💾 Salvar log do dia'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* History */}
-      <div className="card">
-        <div className="ch"><span className="ct">📚 Histórico de Logs</span><span className="ca">{logs.length} registro(s)</span></div>
-        <div className="cb" style={{padding: logs.length === 0 ? undefined : 0}}>
-          {logs.length === 0 && <div style={{padding:'20px',textAlign:'center',color:'var(--t3)',fontSize:'0.85rem'}}>Nenhum log submetido ainda. Registre suas atividades diárias acima.</div>}
-          {logs.map((log: any) => (
-            <div key={log.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--b)'}}>
+      {logForm.project_id && (() => {
+        const filteredLogs = logs.filter((l: any) => l.project_id === logForm.project_id);
+        return (
+          <div className="card">
+            <div className="ch"><span className="ct">📚 Histórico de Logs</span><span className="ca">{filteredLogs.length} registro(s)</span></div>
+            <div className="cb" style={{padding: filteredLogs.length === 0 ? undefined : 0}}>
+              {filteredLogs.length === 0 && <div style={{padding:'20px',textAlign:'center',color:'var(--t3)',fontSize:'0.85rem'}}>Nenhum log submetido para este projeto ainda. Registre suas atividades diárias acima.</div>}
+              {filteredLogs.map((log: any) => (
+                <div key={log.id} style={{padding:'14px 16px',borderBottom:'1px solid var(--b)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                   <div style={{width:8,height:8,borderRadius:'50%',background:'var(--gold)',flexShrink:0}}></div>
@@ -74,7 +81,7 @@ export default function PartnerDailyLogTab({
               
               {/* Stage-specific Photos Mini-Gallery */}
               {(() => {
-                 const currentLogPhotos = logPhotos?.filter((p: any) => p.log_id === log.id && p.file_type?.startsWith('image/')) || [];
+                 const currentLogPhotos = logPhotos?.filter((p: any) => p.log_id === log.id && (p.file_type?.startsWith('image/') || !p.file_type || p.file_name?.match(/\.(jpg|jpeg|png|gif|heic|webp)$/i))) || [];
                  return (
                    <div style={{paddingLeft:16, marginTop:8}}>
                       {currentLogPhotos.length > 0 && (
@@ -100,6 +107,8 @@ export default function PartnerDailyLogTab({
           ))}
         </div>
       </div>
+      );
+      })()}
     </div>
   );
 }
