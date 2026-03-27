@@ -1398,8 +1398,6 @@ export default function AdminDashboard() {
                                        value={lead.partner_percentage || ''}
                                        onChange={(e) => {
                                           const val = e.target.value ? parseFloat(e.target.value) : null;
-                                          // Update local state temporarily for snappy UI
-                                          setSelectedLead({...lead, partner_percentage: val});
                                           updateLead(lead.id, { partner_percentage: val });
                                        }}
                                     />
@@ -1415,7 +1413,6 @@ export default function AdminDashboard() {
                                              payment_status: e.target.value,
                                              payment_date: isPaid ? new Date().toISOString() : null
                                           };
-                                          setSelectedLead({...lead, ...updatePayload});
                                           updateLead(lead.id, updatePayload);
                                        }}
                                     >
