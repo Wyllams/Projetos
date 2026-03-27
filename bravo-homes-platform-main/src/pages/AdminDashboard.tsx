@@ -1154,17 +1154,18 @@ export default function AdminDashboard() {
   };
 
   const totalRevenue = projects.reduce((acc, p) => acc + (Number(p.contract_value) || 0), 0);
-  const grossRevenue = totalRevenue;
-  const toReceive = projects.reduce((acc, p) => {
-     const val = Number(p.contract_value) || 0;
-     const paid = val * ((p.progress || 0) / 100);
-     return acc + (val - paid);
-  }, 0);
-  const paidToPartners = projects.reduce((acc, p) => {
-     const val = Number(p.contract_value) || 0;
-     const paid = val * ((p.progress || 0) / 100);
-     return acc + (paid * 0.6); 
-  }, 0);
+  const grossRevenue = totalRevenue; // Mantido conforme pedido: "faturamento bruto vai deixar"
+  
+  // Cálculo de Recebíveis baseados em Leads (Comissão / Porcentagem fechada com o parceiro)
+  const leadsWithCommission = leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0 && l.partner_percentage > 0);
+
+  const toReceive = leadsWithCommission
+    .filter(l => l.payment_status !== 'pago')
+    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage) / 100)), 0);
+
+  const paidToPartners = leadsWithCommission
+    .filter(l => l.payment_status === 'pago')
+    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage) / 100)), 0);
 
   return (
     <div className="admin-body">
@@ -1369,13 +1370,14 @@ export default function AdminDashboard() {
                            <th>Serviço</th>
                            <th>Valor Est.</th>
                            <th>Parceiro(s)</th>
+                           <th>Porcentagem (%)</th>
                            <th>Status do Pagto</th>
                            <th>Data / Hora</th>
                         </tr>
                       </thead>
                       <tbody>
                         {leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0).length === 0 ? (
-                           <tr><td colSpan={6} className="u-empty-state">Nenhum pagamento registrado ou lead atribuído.</td></tr>
+                           <tr><td colSpan={7} className="u-empty-state">Nenhum pagamento registrado ou lead atribuído.</td></tr>
                         ) : (
                            leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0)
                                 .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -1388,16 +1390,33 @@ export default function AdminDashboard() {
                                     {lead.assigned_partners.map((pid: string) => partners.find(p => p.id === pid)?.full_name || partners.find(p => p.id === pid)?.name || 'Parceiro').join(', ')}
                                  </td>
                                  <td>
+                                    <input 
+                                       type="number"
+                                       className="f-inp"
+                                       placeholder="Ex: 10"
+                                       style={{padding: '4px 8px', width: '80px', textAlign: 'center', fontSize: '0.8rem'}}
+                                       value={lead.partner_percentage || ''}
+                                       onChange={(e) => {
+                                          const val = e.target.value ? parseFloat(e.target.value) : null;
+                                          // Update local state temporarily for snappy UI
+                                          setSelectedLead({...lead, partner_percentage: val});
+                                          updateLead(lead.id, { partner_percentage: val });
+                                       }}
+                                    />
+                                 </td>
+                                 <td>
                                     <select 
                                        className="f-inp" 
                                        style={{padding: '4px 8px', width: 'auto', fontSize: '0.8rem', background: lead.payment_status === 'pago' ? 'var(--green)' : 'var(--bg3)', color: lead.payment_status === 'pago' ? '#fff' : 'var(--text)'}}
                                        value={lead.payment_status || 'pendente'}
                                        onChange={(e) => {
                                           const isPaid = e.target.value === 'pago';
-                                          updateLead(lead.id, { 
+                                          const updatePayload = { 
                                              payment_status: e.target.value,
                                              payment_date: isPaid ? new Date().toISOString() : null
-                                          });
+                                          };
+                                          setSelectedLead({...lead, ...updatePayload});
+                                          updateLead(lead.id, updatePayload);
                                        }}
                                     >
                                        <option value="pendente">Pendente</option>
