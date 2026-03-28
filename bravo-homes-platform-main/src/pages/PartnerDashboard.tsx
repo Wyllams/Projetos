@@ -12,6 +12,7 @@ import PartnerSidebar from '../components/partner/PartnerSidebar';
 import PartnerHeader from '../components/partner/PartnerHeader';
 import PartnerTeamTab from '../components/partner/PartnerTeamTab';
 import PartnerHomeTab from '../components/partner/PartnerHomeTab';
+import PartnerProposalsTab from '../components/partner/PartnerProposalsTab';
 import PartnerProjectsTab from '../components/partner/PartnerProjectsTab';
 import PartnerDailyLogTab from '../components/partner/PartnerDailyLogTab';
 import PartnerCalendarTab from '../components/partner/PartnerCalendarTab';
@@ -37,7 +38,6 @@ export default function PartnerDashboard() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loadingDb, setLoadingDb] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [isEmployee, setIsEmployee] = useState(false);
   const [employeePerms, setEmployeePerms] = useState<any>(null);
   const [masterId, setMasterId] = useState<string | null>(null);
   const [adminUser, setAdminUser] = useState<User | null>(null);
@@ -96,10 +96,7 @@ export default function PartnerDashboard() {
       
       const { data: empData } = await supabase.from('partner_employees').select('*').eq('email', currentUser.email).maybeSingle();
       
-      let finalUserId = currentUser.id;
       if (empData) {
-        setIsEmployee(true);
-        
         // Ativa o usuário como "Acessou" caso ainda esteja pendente
         if (empData.permissions && empData.permissions.status !== 'Ativo') {
           const newPerms = { ...empData.permissions, status: 'Ativo' };
@@ -108,7 +105,6 @@ export default function PartnerDashboard() {
         }
 
         setEmployeePerms(empData.permissions);
-        finalUserId = empData.partner_id;
         setMasterId(empData.partner_id);
 
         const { data: myProfile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
@@ -696,6 +692,16 @@ export default function PartnerDashboard() {
               logs={logs}
               setActiveTab={setActiveTab}
               user={user}
+            />
+          )}
+
+          {/* PROPOSALS */}
+          {activeTab === 'proposals' && (!employeePerms || employeePerms.proposals?.view !== false) && (
+            <PartnerProposalsTab
+              user={user}
+              leads={leads}
+              clients={clients}
+              showToast={showToast}
             />
           )}
 

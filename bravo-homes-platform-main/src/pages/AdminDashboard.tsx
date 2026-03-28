@@ -595,7 +595,7 @@ export default function AdminDashboard() {
         await supabase.from('leads').delete().eq('client_id', clientId);
         
         // Delete the client and verify it was actually deleted
-        const { data, error, count } = await supabase.from('clients').delete().eq('id', clientId).select();
+        const { data, error } = await supabase.from('clients').delete().eq('id', clientId).select();
         
         if (error) {
           console.error("Erro ao deletar cliente:", error);
@@ -1157,15 +1157,15 @@ export default function AdminDashboard() {
   const grossRevenue = totalRevenue; // Mantido conforme pedido: "faturamento bruto vai deixar"
   
   // Cálculo de Recebíveis baseados em Leads (Comissão / Porcentagem fechada com o parceiro)
-  const leadsWithCommission = leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0 && l.partner_percentage > 0);
+  const leadsWithCommission = leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0 && l.partner_percentage && l.partner_percentage > 0);
 
   const toReceive = leadsWithCommission
     .filter(l => l.payment_status !== 'pago')
-    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage) / 100)), 0);
+    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage || 0) / 100)), 0);
 
   const paidToPartners = leadsWithCommission
     .filter(l => l.payment_status === 'pago')
-    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage) / 100)), 0);
+    .reduce((acc, l) => acc + (Number(l.estimated_value || 0) * (Number(l.partner_percentage || 0) / 100)), 0);
 
   return (
     <div className="admin-body">

@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import PartnerDashboard from './pages/PartnerDashboard';
 import LandingPage from './pages/LandingPage';
+import PublicQuoteView from './pages/PublicQuoteView';
 import ProtectedRoute from './components/ProtectedRoute';
 import { LanguageProvider } from './lib/i18n';
 
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/partner" element={<ProtectedRoute allowedRoles={['parceiro']}><PartnerDashboard /></ProtectedRoute>} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/lp/bathroom/:city" element={<LandingPage />} />
+        <Route path="/quote/:id" element={<PublicQuoteView />} />
       </Routes>
     </BrowserRouter>
     </LanguageProvider>

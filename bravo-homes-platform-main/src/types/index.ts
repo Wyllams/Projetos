@@ -66,6 +66,35 @@ export interface Project {
   updated_at?: string;
 }
 
+export interface Proposal {
+  id: string;
+  partner_id: string;
+  client_id?: string;
+  lead_id?: string;
+  title: string;
+  content: string;
+  total_value?: number;
+  status: 'draft' | 'sent' | 'viewed' | 'signed' | 'rejected';
+  viewed_at?: string;
+  signed_at?: string;
+  signature_url?: string;
+  pdf_url?: string;
+  created_at?: string;
+  updated_at?: string;
+
+  // Joined properties
+  client?: Client;
+  lead?: Lead;
+}
+
+export interface ProposalTemplate {
+  id: string;
+  partner_id: string;
+  name: string;
+  content: string;
+  created_at?: string;
+}
+
 export interface Partner {
   id: string;
   full_name?: string;

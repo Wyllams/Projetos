@@ -44,6 +44,11 @@ export default function PartnerSidebar({
           <div className={navItemClass('dashboard')} onClick={() => navTo('dashboard')}>
             <span className="ni-icon">◈</span>{t('dashboard')}
           </div>
+          {(!perms || perms.proposals?.view !== false) && (
+            <div className={navItemClass('proposals')} onClick={() => navTo('proposals')}>
+              <span className="ni-icon">📄</span>Orçamentos
+            </div>
+          )}
           {(!perms || perms.leads?.view !== false) && (
             <div className={navItemClass('leads')} onClick={() => navTo('leads')}>
               <span className="ni-icon">◎</span>{t('assignedLeads')}{leadsCount > 0 && <span className="badge">{leadsCount}</span>}
