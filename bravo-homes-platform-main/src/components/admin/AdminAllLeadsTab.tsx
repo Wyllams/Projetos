@@ -50,10 +50,10 @@ export default function AdminAllLeadsTab({ setIsNewLeadOpen, setSelectedLead, sh
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <input type="file" accept=".csv" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
           <Button variant="ghost" onClick={handleImportClick} disabled={isImporting} style={{ border: '1px solid var(--b)' }}>
-            {isImporting ? '⏳ Importando...' : '📥 Importar CSV'}
+            {isImporting ? t('importingCsvBtn') : t('importCsvBtn')}
           </Button>
           <Button variant="ghost" onClick={() => exportLeadsToCSV(leads as any)} style={{ border: '1px solid var(--b)' }}>
-            📤 Exportar
+            {t('exportCsvBtn')}
           </Button>
           <Button variant="gold" onClick={() => setIsNewLeadOpen(true)}>{t('newLeadBtn')}</Button>
         </div>

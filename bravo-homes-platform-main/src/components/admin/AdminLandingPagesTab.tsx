@@ -28,8 +28,8 @@ export default function AdminLandingPagesTab({ setIsLPOpen, showConfirm }: Admin
   return (
     <div className="page active">
       <div className="u-section-header">
-        <div className="u-syne-title">Landing Pages</div>
-        <Button variant="gold" onClick={() => setIsLPOpen(true)}>+ Nova LP</Button>
+        <div className="u-syne-title">{t('landingPages')}</div>
+        <Button variant="gold" onClick={() => setIsLPOpen(true)}>{t('newLPBtn')}</Button>
       </div>
       <Card>
         <CardContent className="p-0 overflow-x-auto">
@@ -60,7 +60,7 @@ export default function AdminLandingPagesTab({ setIsLPOpen, showConfirm }: Admin
                       <span 
                         className={`status-b ${lp.status === 'live' ? 'sb-live' : 'sb-draft'}`} 
                         style={{ cursor: 'pointer' }} 
-                        title="Clique para alternar o status" 
+                        title={t('clickToToggleStatus')} 
                         onClick={() => toggleLPStatus(lp)}
                       >
                         {(lp.status || 'draft').toUpperCase()}
@@ -79,14 +79,14 @@ export default function AdminLandingPagesTab({ setIsLPOpen, showConfirm }: Admin
                             showToast(t('copyLPLink'));
                           }}
                         >
-                          Link
+                          {t('linkBtn')}
                         </Button>
                         <Button 
                           variant="ghost" 
                           className="px-3.5 py-1.5 text-[.75rem]" 
                           onClick={() => showToast(t('lpBuilderSoon'))}
                         >
-                          Editar
+                          {t('editBtn')}
                         </Button>
                         <Button 
                           variant="ghost" 

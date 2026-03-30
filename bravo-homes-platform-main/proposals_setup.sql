@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS public.proposals (
   title text NOT NULL,
   content text NOT NULL,
   total_value numeric NULL,
+  services jsonb NULL DEFAULT '[]'::jsonb,
+  terms jsonb NULL DEFAULT '{}'::jsonb,
   status text NOT NULL DEFAULT 'draft'::text,
   viewed_at timestamp with time zone NULL,
   signed_at timestamp with time zone NULL,
@@ -60,3 +62,7 @@ CREATE POLICY "Partners can delete proposals bucket" ON storage.objects FOR DELE
 CREATE POLICY "Public can upload to proposals bucket" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'proposals' AND auth.role() = 'anon');
 -- Allow public select so anyone with link can see the PDF / Image
 CREATE POLICY "Public can view objects in proposals bucket" ON storage.objects FOR SELECT USING (bucket_id = 'proposals');
+
+-- RUN THESE TO UPGRADE DB:
+-- ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS services jsonb NULL DEFAULT '[]'::jsonb;
+-- ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS terms jsonb NULL DEFAULT '{}'::jsonb;

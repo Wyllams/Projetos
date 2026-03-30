@@ -24,7 +24,7 @@ export default function PartnersTab({
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <table className="tbl">
-            <thead><tr><th>Nome Completo</th><th>Especialidades</th><th>Projetos</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>{t('clientNameCol')}</th><th>{t('SPECIALTYCOL')}</th><th>{t('PROJECTSCOL')}</th><th>{t('lpStatus')}</th><th>{t('actionsCol')}</th></tr></thead>
             <tbody>
               {partners.length === 0 && !loadingDb && (
                 <tr><td colSpan={5} className="u-empty-state">{t('noPartnerFound')}</td></tr>

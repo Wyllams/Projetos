@@ -58,7 +58,7 @@ export default function PartnerHeader({
           )}
         </div>
         {notifOpen && (
-          <div style={{position:'absolute',top:'100%',right:0,width:'340px',maxHeight:'400px',overflowY:'auto',background:'var(--card)',border:'1px solid var(--b)',borderRadius:'12px',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',zIndex:999,padding:'8px 0',marginTop:'8px'}}>
+          <div style={{position:'absolute',top:'100%',right:0,width:'340px',maxHeight:'400px',overflowY:'auto',background:'var(--bg2)',border:'1px solid var(--b)',borderRadius:'12px',boxShadow:'0 8px 30px rgba(0,0,0,0.3)',zIndex:999,padding:'8px 0',marginTop:'8px'}}>
             <div style={{padding:'10px 16px',borderBottom:'1px solid var(--b)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <span style={{fontWeight:700,fontSize:'0.85rem'}}>🔔 Notificações</span>
               {unreadCount > 0 && (

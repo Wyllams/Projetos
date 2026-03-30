@@ -49,7 +49,7 @@ export default function PartnerDailyLogTab({
               </div>
               <div className="u-mb-14">
                 <label style={{fontFamily:"'DM Mono',monospace",fontSize:'0.6rem',color:'var(--t3)',letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:6}}>Materiais utilizados</label>
-                <input className="f-inp" type="text" placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})} />
+                <textarea className="f-inp" style={{resize:'vertical',minHeight:100}} placeholder="Ex: 40 azulejos 60x60, argamassa, rejunte..." value={logForm.materials} onChange={e => setLogForm({...logForm, materials: e.target.value})}></textarea>
               </div>
               <button className="btn gold" onClick={() => { if (canCreate) submitLog(); else showToast?.('Acesso Negado', 'Permissão negada para postar atualização.', 'error'); }} disabled={isSavingLog} style={{opacity: isSavingLog ? 0.6 : 1}}>
                 {isSavingLog ? '⏳ Salvando...' : '💾 Salvar log do dia'}

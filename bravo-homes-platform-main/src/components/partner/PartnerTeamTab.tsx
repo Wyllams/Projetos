@@ -17,6 +17,7 @@ const defaultPermissions: EmployeePermissions = {
   dailylog: { view: true, create: false, delete: false },
   uploads: { view: true, upload: false, delete: false },
   chat: { view: true, send: false, delete: false },
+  quotes: { view: true, create: false, edit: false, delete: false },
   status: 'Pendente',
 };
 
@@ -29,7 +30,8 @@ const permissionModules = [
   { id: 'calendar', label: 'Calendário e Vistorias', actions: [{key: 'view', label: 'Ver'}, {key: 'edit', label: 'Agendar/Editar'}, {key: 'delete', label: 'Excluir Agendamento'}] },
   { id: 'dailylog', label: 'Diário de Obras', actions: [{key: 'view', label: 'Ver'}, {key: 'create', label: 'Postar Atualização'}, {key: 'delete', label: 'Excluir Diário'}] },
   { id: 'uploads', label: 'Fotos e Documentos (Drive)', actions: [{key: 'view', label: 'Ver'}, {key: 'upload', label: 'Enviar Ficheiros'}, {key: 'delete', label: 'Apagar'}] },
-  { id: 'chat', label: 'Chat de Mensagens', actions: [{key: 'view', label: 'Ler'}, {key: 'send', label: 'Enviar'}, {key: 'delete', label: 'Apagar Conversa'}] }
+  { id: 'chat', label: 'Chat de Mensagens', actions: [{key: 'view', label: 'Ler'}, {key: 'send', label: 'Enviar'}, {key: 'delete', label: 'Apagar Conversa'}] },
+  { id: 'quotes', label: 'Orçamentos (Propostas)', actions: [{key: 'view', label: 'Ver'}, {key: 'create', label: 'Criar'}, {key: 'edit', label: 'Editar'}, {key: 'delete', label: 'Excluir'}] }
 ];
 
 
@@ -40,6 +42,7 @@ export default function PartnerTeamTab({ user, showToast }: PartnerTeamTabProps)
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Partial<PartnerEmployee>>({});
 
@@ -89,13 +92,12 @@ export default function PartnerTeamTab({ user, showToast }: PartnerTeamTabProps)
     }
   };
 
-  const handleDelete = async (id?: string) => {
-    if (!id) return;
-    if (window.confirm('Tem certeza que deseja excluir este funcionário? O acesso dele será bloqueado.')) {
-      await supabase.from('partner_employees').delete().eq('id', id);
-      showToast('Excluído', 'Funcionário removido com sucesso.', 'success');
-      fetchEmployees();
-    }
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return;
+    await supabase.from('partner_employees').delete().eq('id', employeeToDelete);
+    showToast('Excluído', 'Funcionário removido com sucesso.', 'success');
+    setEmployeeToDelete(null);
+    fetchEmployees();
   };
 
   const saveEmployee = async (e: any) => {
@@ -165,7 +167,7 @@ export default function PartnerTeamTab({ user, showToast }: PartnerTeamTabProps)
         <button className="btn gold" onClick={openNewEmployee} style={{padding: '8px 16px', fontSize: '0.85rem'}}>+ Novo Funcionário</button>
       </div>
 
-      <div className="card">
+      <div className="card table-responsive">
          <table className="data-table" style={{width: '100%', textAlign: 'left', borderCollapse: 'collapse'}}>
             <thead>
               <tr style={{borderBottom: '1px solid var(--b)', color: 'var(--t2)', fontSize: '0.85rem'}}>
@@ -200,7 +202,7 @@ export default function PartnerTeamTab({ user, showToast }: PartnerTeamTabProps)
                      <button className="btn-icon" onClick={() => shareInvite(emp, 'email')} style={{background: 'transparent', border:'none', cursor:'pointer'}} title="Enviar Convite E-mail">📧</button>
                      <div style={{width: 1, height: 20, background: 'var(--border)', margin: '0 5px'}}></div>
                      <button className="btn-icon" onClick={() => openEditEmployee(emp, idx)} style={{background: 'transparent', border:'none', cursor:'pointer'}} title="Editar Permissões">⚙️</button>
-                     <button className="btn-icon" onClick={() => handleDelete(emp.id)} style={{color:'var(--red)', background: 'transparent', border:'none', cursor:'pointer'}} title="Excluir">🗑️</button>
+                     <button className="btn-icon" onClick={() => setEmployeeToDelete(emp.id as string)} style={{color:'var(--red)', background: 'transparent', border:'none', cursor:'pointer'}} title="Excluir">🗑️</button>
                   </td>
                 </tr>
               ))}
@@ -271,6 +273,29 @@ export default function PartnerTeamTab({ user, showToast }: PartnerTeamTabProps)
                     <button type="submit" className="btn gold" style={{padding: '8px 16px', fontSize: '0.85rem'}}>Salvar Acessos</button>
                  </div>
               </form>
+           </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {employeeToDelete && (
+        <div className="modal-overlay open" onClick={() => setEmployeeToDelete(null)} style={{alignItems:'center', justifyContent:'center', padding: '20px'}}>
+           <div className="modal" onClick={e=>e.stopPropagation()} style={{maxWidth: '400px', width: '100%', background: 'var(--b2)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)'}}>
+              <div style={{padding: '25px 20px 10px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                 <div style={{width: 50, height: 50, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', margin: '0 0 15px 0'}}>
+                   <span style={{ transform: 'translateY(-2px)', lineHeight: 1 }}>⚠️</span>
+                 </div>
+                 <div style={{fontFamily: "'Syne', sans-serif", fontSize: '1.2rem', color: '#fff', fontWeight: 'bold'}}>
+                    Remover Acesso?
+                 </div>
+              </div>
+              <div className="modal-body" style={{padding: '0 20px 25px 20px', textAlign: 'center', color: 'var(--t2)', fontSize: '0.90rem', lineHeight: '1.5'}}>
+                 Tem certeza que deseja excluir este funcionário? O acesso à plataforma será permanentemente bloqueado.
+              </div>
+              <div className="modal-foot" style={{padding: '16px 20px', borderTop: '1px solid var(--b)', display: 'flex', justifyContent: 'center', gap: '10px', background: 'var(--bg)'}}>
+                 <button type="button" className="btn ghost" style={{flex: 1, justifyContent: 'center'}} onClick={() => setEmployeeToDelete(null)}>Cancelar</button>
+                 <button type="button" className="btn" style={{flex: 1, justifyContent: 'center', background: '#ef4444', color: '#fff', border: 'none'}} onClick={confirmDelete}>Sim, Remover</button>
+              </div>
            </div>
         </div>
       )}

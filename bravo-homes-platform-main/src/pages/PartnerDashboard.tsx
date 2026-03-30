@@ -23,10 +23,10 @@ import './PartnerDashboard.css';
 
 export default function PartnerDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('partnerActiveTab') || 'dashboard');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('partnerActiveTab') || 'dashboard');
   
   useEffect(() => {
-    localStorage.setItem('partnerActiveTab', activeTab);
+    sessionStorage.setItem('partnerActiveTab', activeTab);
   }, [activeTab]);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
@@ -653,7 +653,7 @@ export default function PartnerDashboard() {
         t={t as any}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        handleLogout={async () => { localStorage.removeItem('partnerActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}
+        handleLogout={async () => { sessionStorage.removeItem('partnerActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}
         perms={employeePerms}
       />
 
@@ -696,7 +696,7 @@ export default function PartnerDashboard() {
           )}
 
           {/* PROPOSALS */}
-          {activeTab === 'proposals' && (!employeePerms || employeePerms.proposals?.view !== false) && (
+          {activeTab === 'proposals' && (!employeePerms || employeePerms.quotes?.view !== false) && (
             <PartnerProposalsTab
               user={user}
               leads={leads}

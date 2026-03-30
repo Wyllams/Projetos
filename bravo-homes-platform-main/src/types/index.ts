@@ -74,6 +74,8 @@ export interface Proposal {
   title: string;
   content: string;
   total_value?: number;
+  services?: any[];
+  terms?: any;
   status: 'draft' | 'sent' | 'viewed' | 'signed' | 'rejected';
   viewed_at?: string;
   signed_at?: string;
@@ -283,6 +285,7 @@ export interface EmployeePermissions {
   dailylog?: { view: boolean; create: boolean; delete: boolean };
   uploads?: { view: boolean; upload: boolean; delete: boolean };
   chat?: { view: boolean; send: boolean; delete: boolean };
+  quotes?: { view: boolean; create: boolean; edit: boolean; delete: boolean };
   status?: 'Pendente' | 'Ativo';
 }
 

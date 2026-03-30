@@ -14,4 +14,7 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
   },
+  optimizeDeps: {
+    include: ['react-signature-canvas', 'prop-types']
+  }
 })

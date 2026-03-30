@@ -28,10 +28,10 @@ import '../styles/utilities.css';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('adminActiveTab') || 'dashboard');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('adminActiveTab') || 'dashboard');
   
   useEffect(() => {
-    localStorage.setItem('adminActiveTab', activeTab);
+    sessionStorage.setItem('adminActiveTab', activeTab);
   }, [activeTab]);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
@@ -1210,7 +1210,7 @@ export default function AdminDashboard() {
           <div className={navItemClass('settings')} onClick={() => navTo('settings')}><span className="ni-icon">⚙</span>{t('settings')}</div>
         </div>
         <div className="sb-footer">
-          <div className="logout" style={{textAlign:'center'}} onClick={async () => { localStorage.removeItem('adminActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}>🚪 {t('logout')}</div>
+          <div className="logout" style={{textAlign:'center'}} onClick={async () => { sessionStorage.removeItem('adminActiveTab'); await supabase.auth.signOut(); window.location.href = '/'; }}>🚪 {t('logout')}</div>
         </div>
       </nav>
       {/* Mobile sidebar backdrop */}
@@ -1219,7 +1219,7 @@ export default function AdminDashboard() {
       <div className="main">
         <div className="topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', height: '60px', borderBottom: '1px solid var(--b)', background: 'var(--bg2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-            <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Abrir/fechar menu lateral" style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '1.4rem', cursor: 'pointer', display: 'none' }}>☰</button>
+            <button className="sb-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Abrir/fechar menu lateral" style={{ background: 'transparent', border: 'none', color: 'var(--text)', fontSize: '1.4rem', cursor: 'pointer' }}>☰</button>
             <div className="topbar-title" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>
               {{'lp':t('topbarLandingPages'),'allleads':t('topbarAllLeads'),'adminchat':t('topbarChat'),'projects':t('topbarProjects'),'pipeline':t('topbarPipeline'),'calendar':t('topbarCalendar'),'partners':t('topbarPartners'),'clients':t('topbarClients'),'finances':t('topbarFinances'),'settings':t('topbarSettings'),'dashboard':t('topbarDashboard')}[activeTab] || activeTab.toUpperCase()}
             </div>
@@ -1354,38 +1354,38 @@ export default function AdminDashboard() {
           {/* FINANCES TAB */}
           {activeTab === 'finances' && (
             <div className="page active">
-              <div style={{marginBottom:16}}><div className="u-syne-title">Financeiro</div></div>
+              <div style={{marginBottom:16}}><div className="u-syne-title">{t('financesTitle')}</div></div>
               <div className="g3">
-                 <div className="kpi"><div className="kl">Faturamento Bruto</div><div className="kv u-text-gold">${grossRevenue.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
-                 <div className="kpi"><div className="kl">A Receber</div><div className="kv">${toReceive.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
-                 <div className="kpi"><div className="kl">Recebido / Pago</div><div className="kv">${paidToPartners.toLocaleString(undefined, {maximumFractionDigits:0})}</div></div>
+                 <div className="kpi"><div className="kl">{t('grossRevenue')}</div><div className="kv u-text-gold">{t('currencySymbol')} {grossRevenue.toLocaleString(lang, {maximumFractionDigits:0})}</div></div>
+                 <div className="kpi"><div className="kl">{t('toReceive')}</div><div className="kv">{t('currencySymbol')} {toReceive.toLocaleString(lang, {maximumFractionDigits:0})}</div></div>
+                 <div className="kpi"><div className="kl">{t('paidReceived')}</div><div className="kv">{t('currencySymbol')} {paidToPartners.toLocaleString(lang, {maximumFractionDigits:0})}</div></div>
               </div>
               <div className="card" style={{ marginTop: '24px' }}>
-                <div className="ch"><span className="ct">Últimos Pagamentos</span></div>
+                <div className="ch"><span className="ct">{t('latestPayments')}</span></div>
                 <div className="cb p-0 overflow-x-auto">
                    <table className="tbl">
                       <thead>
                         <tr>
-                           <th>Lead / Cliente</th>
-                           <th>Serviço</th>
-                           <th>Valor Est.</th>
-                           <th>Parceiro(s)</th>
-                           <th>Porcentagem (%)</th>
-                           <th>Status do Pagto</th>
-                           <th>Data / Hora</th>
+                           <th>{t('leadClientCol')}</th>
+                           <th>{t('serviceCol')}</th>
+                           <th>{t('estValueCol')}</th>
+                           <th>{t('partnersCol')}</th>
+                           <th>{t('percentageCol')}</th>
+                           <th>{t('paymentStatusCol')}</th>
+                           <th>{t('dateTimeCol')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0).length === 0 ? (
-                           <tr><td colSpan={7} className="u-empty-state">Nenhum pagamento registrado ou lead atribuído.</td></tr>
+                           <tr><td colSpan={7} className="u-empty-state">{t('noPaymentsMsg')}</td></tr>
                         ) : (
                            leads.filter(l => l.assigned_partners && l.assigned_partners.length > 0)
                                 .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
                                 .map((lead: any) => (
                               <tr key={lead.id}>
-                                 <td><b>{lead.name || lead.clients?.name || 'Desconhecido'}</b></td>
-                                 <td>{lead.service_type || 'N/D'}</td>
-                                 <td className="u-text-gold">${lead.estimated_value || 0}</td>
+                                 <td><b>{lead.name || lead.clients?.name || t('unknownClient')}</b></td>
+                                 <td>{lead.service_type || t('naStatus')}</td>
+                                 <td className="u-text-gold">{t('currencySymbol')} {lead.estimated_value || 0}</td>
                                  <td>
                                     {lead.assigned_partners.map((pid: string) => partners.find(p => p.id === pid)?.full_name || partners.find(p => p.id === pid)?.name || 'Parceiro').join(', ')}
                                  </td>
