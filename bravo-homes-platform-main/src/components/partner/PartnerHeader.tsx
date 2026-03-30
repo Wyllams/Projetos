@@ -52,7 +52,8 @@ export default function PartnerHeader({
       </div>
 
       <div className="topbar-pill" style={!isOnline ? {color: 'var(--red)', background: 'rgba(231,76,60,0.1)', borderColor: 'rgba(231,76,60,0.2)'} : {}}>
-        {isOnline ? '🟢 Online' : '🔴 Offline'}
+        <span>{isOnline ? '🟢' : '🔴'}</span>
+        <span>{isOnline ? 'Online' : 'Offline'}</span>
       </div>
       <span style={{fontFamily:"'DM Mono',monospace",fontSize:'0.65rem',color:'var(--t3)'}}>{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
       
