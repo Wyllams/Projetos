@@ -22,7 +22,7 @@
 .badge{background:var(--red);color:#fff;font-size:0.55rem;font-family:'DM Mono',monospace;padding:2px 5px;border-radius:8px;margin-left:auto}
 .badge.gold{background:var(--gold);color:#0A0D12}
 .sb-footer{padding:10px;border-top:1px solid var(--b)}
-.logout{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--t3);font-size:0.78rem;cursor:pointer;padding:6px;border-radius:5px;transition:all .15s}
+.logout{display:flex;align-items:center;justify-content:center;gap:6px;color:rgba(231,76,60,0.6);font-size:0.78rem;cursor:pointer;padding:6px;border-radius:5px;transition:all .15s}
 .logout:hover{color:var(--red);background:rgba(231,76,60,0.08)}
 
 /* MAIN */
